@@ -331,7 +331,7 @@ get_ttys() {
 
 find_xda() {
     # 出错后再运行脚本，硬盘可能已经格式化，之前记录的分区表 id 无效
-    # 因此找到 xda 后要保存 xda 到 /configs/xda
+    # 因此找到 xda 后要保存 xda 到 /config/xda
 
     # 先读取之前保存的
     if xda=$(get_config xda 2>/dev/null) && [ -n "$xda" ]; then
@@ -1401,15 +1401,6 @@ install_alpine() {
     chmod +x /os/etc/init.d/fix-eth-name
     chroot /os rc-update add fix-eth-name boot
 
-    # 安装 frpc
-    if [ -s /configs/frpc.toml ]; then
-        chroot /os apk add frp
-        # chroot rc-update add 默认添加到 sysinit
-        # 但不加 chroot 默认添加到 default
-        chroot /os rc-update add frpc boot
-        cp /configs/frpc.toml /os/etc/frp/frpc.toml
-    fi
-
     # 安装固件微码会触发 grub-probe
     # 如果没挂载会报错
     # Executing grub-2.12-r5.trigger
@@ -1489,8 +1480,7 @@ install_nixos() {
 
     show_nixos_config() {
         echo
-        # 过滤 frp auth.token
-        cat -n /os/etc/nixos/configuration.nix | grep -Fv 'auth.token'
+        cat -n /os/etc/nixos/configuration.nix
         echo
         cat -n /os/etc/nixos/hardware-configuration.nix
         echo
@@ -1559,7 +1549,7 @@ install_nixos() {
             sh=https://nixos.org/nix/install
         fi
         apk add xz
-        wget -O- "$sh" | sh -s -- --no-daemon --no-channel-add
+        wget -O- "$sh" | sh -s -- --no-channel-add
         apk del xz
         # shellcheck source=/dev/null
         . /root/.nix-profile/etc/profile.d/nix.sh
@@ -1615,22 +1605,6 @@ $(del_comment_lines </configs/ssh_keys | del_empty_lines | quote_line | add_spac
         nix_ssh_ports="services.openssh.ports = [ $ssh_port ];"
     fi
 
-    # 虽然是原始 frpc.toml (string) 转成 toml 类型，再转成最终使用的 frpc.toml (string)
-    # 但是可以避免原始 frpc.toml 有错误导致失联
-    if [ -s /configs/frpc.toml ]; then
-        nix_frpc=$(
-            cat <<EOF
-services.frp = {
-  enable = true;
-  role = "client";
-  settings = builtins.fromTOML ''
-$(del_comment_lines </configs/frpc.toml | add_space 4)
-  '';
-};
-EOF
-        )
-    fi
-
     # TODO: 准确匹配网卡，添加 udev 或者直接配置 networkd 匹配 mac
     create_nixos_network_config /tmp/nixos_network_config.nix
 
@@ -1643,7 +1617,6 @@ boot.kernelParams = [ $(get_ttys console= | quote_word) ];
 services.openssh.enable = true;
 $nix_ssh_keys_or_PermitRootLogin
 $nix_ssh_ports
-$nix_frpc
 $(cat /tmp/nixos_network_config.nix)
 ###################################################
 EOF
@@ -1725,12 +1698,14 @@ EOF
     show_nixos_config
 }
 
-add_systemd_service() {
-    local os_dir=$1
-    local service_name=$2
+add_fix_eth_name_systemd_service() {
+    os_dir=$1
 
-    download "$confhome/$service_name.service" "$os_dir/etc/systemd/system/$service_name.service"
-    chroot "$os_dir" systemctl enable "$service_name.service"
+    # 无需执行 systemctl daemon-reload
+    # 因为 chroot 下执行会提示 Running in chroot, ignoring command 'daemon-reload'
+    download "$confhome/fix-eth-name.sh" "$os_dir/fix-eth-name.sh"
+    download "$confhome/fix-eth-name.service" "$os_dir/etc/systemd/system/fix-eth-name.service"
+    chroot "$os_dir" systemctl enable fix-eth-name
 
     # aosc 首次开机会执行 preset-all
     # 因此需要设置 fix-eth-name 的 preset 状态
@@ -1739,46 +1714,9 @@ add_systemd_service() {
 
     # 可能是 /usr/lib/systemd/system-preset/ 或者 /lib/systemd/system-preset/
     if [ -d "$os_dir/usr/lib/systemd/system-preset" ]; then
-        echo "enable $service_name.service" >"$os_dir/usr/lib/systemd/system-preset/01-$service_name.preset"
+        echo 'enable fix-eth-name.service' >"$os_dir/usr/lib/systemd/system-preset/01-fix-eth-name.preset"
     else
-        echo "enable $service_name.service" >"$os_dir/lib/systemd/system-preset/01-$service_name.preset"
-    fi
-}
-
-add_fix_eth_name_systemd_service() {
-    local os_dir=$1
-
-    # 无需执行 systemctl daemon-reload
-    # 因为 chroot 下执行会提示 Running in chroot, ignoring command 'daemon-reload'
-    download "$confhome/fix-eth-name.sh" "$os_dir/fix-eth-name.sh"
-    add_systemd_service "$os_dir" fix-eth-name
-}
-
-get_frpc_url() {
-    wget "$confhome/get-frpc-url.sh" -O- | sh -s "$@"
-}
-
-add_frpc_systemd_service_if_need() {
-    local os_dir=$1
-
-    if [ -s /configs/frpc.toml ]; then
-        mkdir -p "$os_dir/usr/local/bin"
-        mkdir -p "$os_dir/usr/local/etc/frpc"
-
-        # 下载 frpc
-        # 注意下载的 frpc owner 不是 root:root
-        frpc_url=$(get_frpc_url linux)
-        basename=$(echo "$frpc_url" | awk -F/ '{print $NF}' | sed 's/\.tar\.gz//')
-        download "$frpc_url" "$os_dir/frpc.tar.gz"
-        tar xzf "$os_dir/frpc.tar.gz" "$basename/frpc" -O >"$os_dir/usr/local/bin/frpc"
-        rm -f "$os_dir/frpc.tar.gz"
-        chmod a+x "$os_dir/usr/local/bin/frpc"
-
-        # frpc conf
-        cp /configs/frpc.toml "$os_dir/usr/local/etc/frpc/frpc.toml"
-
-        # 添加服务
-        add_systemd_service "$os_dir" frpc
+        echo 'enable fix-eth-name.service' >"$os_dir/lib/systemd/system-preset/01-fix-eth-name.preset"
     fi
 }
 
@@ -1837,9 +1775,6 @@ basic_init() {
     # 即使开了 net.ifnames=0 也需要
     # 因为 alpine live 和目标系统的网卡顺序可能不同
     add_fix_eth_name_systemd_service $os_dir
-
-    # frpc
-    add_frpc_systemd_service_if_need $os_dir
 }
 
 install_arch_gentoo_aosc() {
@@ -2906,32 +2841,11 @@ modify_windows() {
         bats="$bats windows-set-netconf-$ethx.bat"
     done
 
-    # 5 frp
-    if [ -s /configs/frpc.toml ]; then
-        # 好像 win7 无法运行 frpc，暂时不管
-        windows_arch=$(get_windows_arch_from_windows_drive "$os_dir" | to_lower)
-        if [ "$windows_arch" = amd64 ] || [ "$windows_arch" = arm64 ]; then
-            mkdir -p "$os_dir/frpc/"
-            url=$(get_frpc_url windows "$nt_ver")
-            download "$url" $os_dir/frpc/frpc.zip
-            # -j 去除文件夹
-            # -C 筛选文件时不区分大小写，但 busybox zip 不支持
-            unzip -o -j "$os_dir/frpc/frpc.zip" '*/frpc.exe' -d "$os_dir/frpc/"
-            rm -f "$os_dir/frpc/frpc.zip"
-            cp -f /configs/frpc.toml "$os_dir/frpc/frpc.toml"
-            download "$confhome/windows-frpc.xml" "$os_dir/frpc/frpc.xml"
-            download "$confhome/windows-frpc.bat" "$os_dir/frpc/frpc.bat"
-            bats="$bats frpc\frpc.bat"
-        else
-            warn "$windows_arch Not Support frpc"
-        fi
-    fi
-
     if $use_gpo; then
         # 使用组策略
-        scripts_ini=$(get_path_in_correct_case $os_dir/Windows/System32/GroupPolicy/Machine/Scripts/scripts.ini)
+        gpt_ini=$os_dir/Windows/System32/GroupPolicy/gpt.ini
+        scripts_ini=$os_dir/Windows/System32/GroupPolicy/Machine/Scripts/scripts.ini
         mkdir -p "$(dirname $scripts_ini)"
-        gpt_ini=$(get_path_in_correct_case $os_dir/Windows/System32/GroupPolicy/gpt.ini)
 
         # 备份 ini
         for file in $gpt_ini $scripts_ini; do
@@ -2978,7 +2892,7 @@ EOF
         download $confhome/windows-del-gpo.bat $os_dir/windows-del-gpo.bat
     else
         # 使用 SetupComplete
-        setup_complete=$(get_path_in_correct_case $os_dir/Windows/Setup/Scripts/SetupComplete.cmd)
+        setup_complete=$os_dir/Windows/Setup/Scripts/SetupComplete.cmd
         mkdir -p "$(dirname $setup_complete)"
 
         # 添加到 C:\Setup\Scripts\SetupComplete.cmd 最前面
@@ -2997,9 +2911,6 @@ EOF
 
         # cat 可以保留权限
         cat $setup_complete_mod >$setup_complete
-
-        # 查看最终内容
-        cat -n $setup_complete
     fi
 }
 
@@ -3141,17 +3052,11 @@ remove_cloud_init() {
     if false && [ -d $os_dir/etc/cloud ]; then
         touch $os_dir/etc/cloud/cloud-init.disabled
     fi
-
-    # systemctl is-enabled cloud-init-hotplugd.service 状态是 static
-    # disable 会出现一堆提示信息，也无法 disable
-    for unit in $(
-        chroot $os_dir systemctl list-unit-files |
-            grep -E '^(cloud-init-.*|cloud-config|cloud-final)\.(service|socket)' | grep enabled | awk '{print $1}'
-    ); do
-        # 服务不存在时会报错
-        if chroot $os_dir systemctl -q is-enabled "$unit"; then
-            chroot $os_dir systemctl disable "$unit"
-        fi
+    for name in cloud-init-local cloud-init cloud-config cloud-final; do
+        for type in service socket; do
+            # 服务不存在时会报错
+            chroot $os_dir systemctl disable "$name.$type" 2>/dev/null || true
+        done
     done
 
     for pkg_mgr in dnf yum zypper apt-get; do
@@ -3165,8 +3070,7 @@ remove_cloud_init() {
                 chroot $os_dir zypper remove -y -u cloud-init
                 ;;
             apt-get)
-                # ubuntu 25.04 开始有 cloud-init-base
-                chroot_apt_remove $os_dir cloud-init cloud-init-base
+                chroot_apt_remove $os_dir cloud-init
                 chroot_apt_autoremove $os_dir
                 ;;
             esac
@@ -3789,7 +3693,7 @@ change_ssh_conf() {
 
 allow_password_login() {
     os_dir=$1
-    change_ssh_conf "$os_dir" PasswordAuthentication yes 01-PasswordAuthentication.conf
+    change_ssh_conf "$os_dir" PasswordAuthentication yes 01-PasswordAuthenticaton.conf
 }
 
 allow_root_password_login() {
@@ -4255,9 +4159,6 @@ install_fnos() {
 
     # 修正网卡名
     add_fix_eth_name_systemd_service $os_dir
-
-    # frpc
-    add_frpc_systemd_service_if_need $os_dir
 }
 
 install_qcow_by_copy() {
@@ -5360,16 +5261,6 @@ get_installation_type_from_windows_drive() {
     apk del hivex
 }
 
-get_windows_arch_from_windows_drive() {
-    local os_dir=$1
-
-    apk add hivex
-    hive=$(find_file_ignore_case $os_dir/Windows/System32/config/SYSTEM)
-    # 没有 CurrentControlSet
-    hivexget $hive 'ControlSet001\Control\Session Manager\Environment' PROCESSOR_ARCHITECTURE
-    apk del hivex
-}
-
 install_windows() {
     get_wim_prop() {
         wim=$1
@@ -5398,24 +5289,9 @@ install_windows() {
     download $iso /os/windows.iso
     mount -o ro /os/windows.iso /iso
 
-    sources_boot_wim=$(
-        cd /iso
-        find_file_ignore_case sources/boot.wim 2>/dev/null ||
-            error_and_exit "can't find boot.wim"
-    )
-
-    # 一般镜像是 install.wim
-    # en_server_install_disc_windows_home_server_2011_x64_dvd_658487.iso 是 Install.wim
-    source_install_wim=$(
-        cd /iso
-        { find_file_ignore_case sources/install.wim ||
-            find_file_ignore_case sources/install.esd; } 2>/dev/null ||
-            error_and_exit "can't find install.wim or install.esd"
-    )
-
     # 防止用了不兼容架构的 iso
-    boot_index=$(get_wim_prop "/iso/$sources_boot_wim" 'Boot Index')
-    arch_wim=$(get_image_prop "/iso/$sources_boot_wim" "$boot_index" 'Architecture' | to_lower)
+    boot_index=$(get_wim_prop /iso/sources/boot.wim 'Boot Index')
+    arch_wim=$(get_image_prop /iso/sources/boot.wim "$boot_index" 'Architecture' | to_lower)
     if ! {
         { [ "$(uname -m)" = "x86_64" ] && [ "$arch_wim" = x86_64 ]; } ||
             { [ "$(uname -m)" = "x86_64" ] && [ "$arch_wim" = x86 ]; } ||
@@ -5429,8 +5305,13 @@ install_windows() {
         error_and_exit "EFI machine can't install 32-bit Windows."
     fi
 
-    iso_install_wim=/iso/$source_install_wim
-    install_wim=/os/installer/$source_install_wim
+    if [ -e /iso/sources/install.esd ]; then
+        iso_install_wim=/iso/sources/install.esd
+        install_wim=/os/installer/sources/install.esd
+    else
+        iso_install_wim=/iso/sources/install.wim
+        install_wim=/os/installer/sources/install.wim
+    fi
 
     # 匹配映像版本
     # 需要整行匹配，因为要区分 Windows 10 Pro 和 Windows 10 Pro for Workstations
@@ -5569,7 +5450,7 @@ install_windows() {
         # 自定义 boot.wim 链接
         download "$boot_wim" /os/boot.wim
     else
-        cp /iso/$sources_boot_wim /os/boot.wim
+        cp /iso/sources/boot.wim /os/boot.wim
     fi
 
     # efi 启动目录为 efi 分区
@@ -5583,16 +5464,15 @@ install_windows() {
     # 复制启动相关的文件
     # efi 额外复制efi目录
     echo 'Copying boot files...'
-    cp -r "$(get_path_in_correct_case /iso/boot)"* $boot_dir
+    cp -r /iso/boot* $boot_dir
     if is_efi; then
         echo 'Copying efi files...'
-        cp -r "$(get_path_in_correct_case /iso/efi)" $boot_dir
+        cp -r /iso/efi/ $boot_dir
     fi
 
     # 复制iso全部文件(除了boot.wim)到installer分区
     echo 'Copying installer files...'
     if false; then
-        # 还需忽略大小写
         rsync -rv \
             --exclude=/sources/boot.wim \
             --exclude=/sources/install.wim \
@@ -5602,9 +5482,9 @@ install_windows() {
         (
             cd /iso
             find . -type f \
-                -not -iname boot.wim \
-                -not -iname install.wim \
-                -not -iname install.esd \
+                -not -name boot.wim \
+                -not -name install.wim \
+                -not -name install.esd \
                 -exec cp -r --parents {} /os/installer/ \;
         )
     fi
@@ -6412,9 +6292,9 @@ EOF
     cp_drivers() {
         if [ "$1" = custom ]; then
             shift
-            dst=$(get_path_in_correct_case "/wim/custom_drivers")
+            dst="/wim/custom_drivers"
         else
-            dst=$(get_path_in_correct_case "/wim/drivers")
+            dst=/wim/drivers
         fi
 
         src=$1
@@ -6436,73 +6316,61 @@ EOF
     add_drivers
 
     # win7 要添加 bootx64.efi 到 efi 目录
-    if is_efi; then
-        [ $arch = amd64 ] && boot_efi=bootx64.efi || boot_efi=bootaa64.efi
-
-        local src dst
-        dst=$(get_path_in_correct_case /os/boot/efi/EFI/boot/$boot_efi)
-        if ! [ -f $dst ]; then
-            mkdir -p "$(dirname $dst)"
-            src=$(get_path_in_correct_case /wim/Windows/Boot/EFI/bootmgfw.efi)
-            cp "$src" "$dst"
-        fi
+    [ $arch = amd64 ] && boot_efi=bootx64.efi || boot_efi=bootaa64.efi
+    if is_efi && [ ! -e /os/boot/efi/efi/boot/$boot_efi ]; then
+        mkdir -p /os/boot/efi/efi/boot/
+        cp /wim/Windows/Boot/EFI/bootmgfw.efi /os/boot/efi/efi/boot/$boot_efi
     fi
 
     # 复制应答文件
     # 移除注释，否则 windows-setup.bat 重新生成的 autounattend.xml 有问题
-    wim_autounattend_xml=$(get_path_in_correct_case /wim/autounattend.xml)
-    wim_windows_xml=$(get_path_in_correct_case /wim/windows.xml)
-    wim_setup_exe=$(get_path_in_correct_case /wim/setup.exe)
-
     apk add xmlstarlet
-    xmlstarlet ed -d '//comment()' /tmp/autounattend.xml >$wim_autounattend_xml
-    unix2dos $wim_autounattend_xml
+    xmlstarlet ed -d '//comment()' /tmp/autounattend.xml >/wim/autounattend.xml
+    unix2dos /wim/autounattend.xml
     info "autounattend.xml"
     # 查看最终文件，并屏蔽密码
-    xmlstarlet ed -d '//*[name()="AdministratorPassword" or name()="Password"]' $wim_autounattend_xml | cat -n
+    xmlstarlet ed -d '//*[name()="AdministratorPassword" or name()="Password"]' /wim/autounattend.xml | cat -n
     apk del xmlstarlet
 
     # 避免无参数运行 setup.exe 时自动安装
-    mv $wim_autounattend_xml $wim_windows_xml
+    mv /wim/autounattend.xml /wim/windows.xml
 
     # 复制安装脚本
     # https://slightlyovercomplicated.com/2016/11/07/windows-pe-startup-sequence-explained/
     # https://learn.microsoft.com/previous-versions/windows/it-pro/windows-vista/cc721977(v=ws.10)
-    mv $wim_setup_exe $wim_setup_exe.disabled
+    mv /wim/setup.exe /wim/setup.exe.disabled
 
     # 如果有重复的 Windows/System32 文件夹，会提示找不到 winload.exe 无法引导
     # win7 win10  boot.wim 是 Windows/System32，install.wim 是 Windows/System32
     # win2016     boot.wim 是 windows/system32，install.wim 是 Windows/System32
     # wimmount 无法挂载成忽略大小写
-
-    startnet_cmd=$(get_path_in_correct_case /wim/Windows/System32/startnet.cmd)
-    winpeshl_ini=$(get_path_in_correct_case /wim/Windows/System32/winpeshl.ini)
-
-    download $confhome/windows-setup.bat $startnet_cmd
+    # shellcheck disable=SC2010
+    system32_dir=$(ls -d /wim/*/*32 | grep -i windows/system32)
+    download $confhome/windows-setup.bat $system32_dir/startnet.cmd
     # dism 手动释放镜像时用
-    # sed -i "s|@image_name@|$image_name|" "$startnet.cmd"
+    # sed -i "s|@image_name@|$image_name|" $system32_dir/startnet.cmd
 
     # shellcheck disable=SC2154
     if [ "$force_old_windows_setup" = 1 ]; then
-        sed -i 's/ForceOldSetup=0/ForceOldSetup=1/i' $startnet_cmd
+        sed -i 's/ForceOldSetup=0/ForceOldSetup=1/i' $system32_dir/startnet.cmd
     fi
 
     # 有 SAC 组件时，启用 EMS
     if $has_sac; then
-        sed -i 's/EnableEMS=0/EnableEMS=1/i' $startnet_cmd
+        sed -i 's/EnableEMS=0/EnableEMS=1/i' $system32_dir/startnet.cmd
     fi
 
     # Windows Thin PC 有 Windows\System32\winpeshl.ini
     # [LaunchApps]
     # %SYSTEMDRIVE%\windows\system32\drvload.exe, %SYSTEMDRIVE%\windows\inf\sdbus.inf
     # %SYSTEMDRIVE%\setup.exe
-    if [ -f "$winpeshl_ini" ]; then
+    if [ -f $system32_dir/winpeshl.ini ]; then
         info "mod winpeshl.ini"
         # https://learn.microsoft.com/previous-versions/windows/it-pro/windows-vista/cc721977(v=ws.10)
         # 两种方法都可以，第一种是原版命令
-        sed -i 's|setup.exe|windows\\system32\\cmd.exe, "/k %SYSTEMROOT%\\system32\\startnet.cmd"|i' "$winpeshl_ini"
-        # sed -i 's|setup.exe|windows\\system32\\startnet.cmd|i' "$winpeshl_ini"
-        cat -n "$winpeshl_ini"
+        sed -i 's|setup.exe|windows\\system32\\cmd.exe, "/k %SYSTEMROOT%\\system32\\startnet.cmd"|i' $system32_dir/winpeshl.ini
+        # sed -i 's|setup.exe|windows\\system32\\startnet.cmd|i' $system32_dir/winpeshl.ini
+        cat -n $system32_dir/winpeshl.ini
     fi
 
     # 提交修改 boot.wim
@@ -6514,6 +6382,7 @@ EOF
     # wimoptimize /os/boot.wim
 
     # 优化 boot.wim 并复制到正确的位置
+    mkdir -p $boot_dir/sources/
     if is_nt_ver_ge 6.1; then
         # win7 或以上删除 boot.wim 镜像 1 不会报错
         # 因为 win7 winre 镜像在 install.wim Windows\System32\Recovery\winRE.wim
@@ -6526,18 +6395,17 @@ EOF
         # vista install.wim 没有 Windows\System32\Recovery\winRE.wim
         images=all
     fi
-    mkdir -p "$(get_path_in_correct_case "$(dirname $boot_dir/$sources_boot_wim)")"
-    wimexport --boot /os/boot.wim "$images" $boot_dir/$sources_boot_wim
+    wimexport --boot /os/boot.wim "$images" $boot_dir/sources/boot.wim
     info "boot.wim size"
-    echo "Original:      $(get_filesize_mb /iso/$sources_boot_wim)"
+    echo "Original:      $(get_filesize_mb /iso/sources/boot.wim)"
     echo "Added Drivers: $(get_filesize_mb /os/boot.wim)"
-    echo "Optimized:     $(get_filesize_mb "$boot_dir/$sources_boot_wim")"
+    echo "Optimized:     $(get_filesize_mb "$boot_dir/sources/boot.wim")"
     echo
 
     # vista 安装时需要 boot.wim，原因见上面
     if [ "$nt_ver" = 6.0 ] &&
-        ! [ -e /os/installer/$sources_boot_wim ]; then
-        cp $boot_dir/$sources_boot_wim /os/installer/$sources_boot_wim
+        ! [ -e /os/installer/sources/boot.wim ]; then
+        cp $boot_dir/sources/boot.wim /os/installer/sources/boot.wim
     fi
 
     # windows 7 没有 invoke-webrequest
@@ -6966,18 +6834,6 @@ if is_need_set_ssh_keys; then
 else
     change_root_password /
     printf '\nyes' | setup-sshd
-fi
-
-# 设置 frpc
-# 并防止重复运行
-if [ -s /configs/frpc.toml ] && ! pidof frpc >/dev/null; then
-    info 'run frpc'
-    add_community_repo
-    apk add frp
-    while true; do
-        frpc -c /configs/frpc.toml || true
-        sleep 5
-    done &
 fi
 
 # shellcheck disable=SC2154
