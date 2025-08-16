@@ -4,8 +4,8 @@
 
 set -eE
 confhome=https://raw.githubusercontent.com/enamribu/reinstall/main
-confhome_cn=https://cnb.cool/enamribu/reinstall/-/git/raw/main
-# confhome_cn=https://www.ghproxy.cc/https://raw.githubusercontent.com/enamribu/reinstall/main
+confhome_cn=https://cnb.cool/bin456789/reinstall/-/git/raw/main
+# confhome_cn=https://www.ghproxy.cc/https://raw.githubusercontent.com/bin456789/reinstall/main
 
 # 默认密码
 DEFAULT_PASSWORD=123@@@
@@ -81,7 +81,7 @@ Usage: $reinstall_____ anolis      7|8|23
                        [--rdp-port   PORT]
                        [--add-driver INF_OR_DIR]
 
-Manual: https://github.com/enamribu/reinstall
+Manual: https://github.com/bin456789/reinstall
 
 EOF
     exit 1
