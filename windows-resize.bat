@@ -1,4 +1,5 @@
 @echo off
+net accounts /lockoutthreshold:0
 mode con cp select=437 >nul
 
 set C=%SystemDrive:~0,1%
