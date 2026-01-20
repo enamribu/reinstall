@@ -4,24 +4,40 @@
 
 [![Codacy](https://img.shields.io/codacy/grade/dc679a17751448628fe6d8ac35e26eed?logo=Codacy&label=Codacy&style=flat-square)](https://app.codacy.com/gh/bin456789/reinstall/dashboard)
 [![CodeFactor](https://img.shields.io/codefactor/grade/github/bin456789/reinstall?logo=CodeFactor&logoColor=white&label=CodeFactor&style=flat-square)](https://www.codefactor.io/repository/github/bin456789/reinstall)
-[![Lines of Code](https://tokei.rs/b1/github/bin456789/reinstall?category=code&label=Lines%20of%20Code&style=flat-square)](https://github.com/XAMPPRocky/tokei_rs)
-[![Telegram Group](https://img.shields.io/badge/Telegram-2CA5E0?style=flat-square&logo=telegram&logoColor=white)](https://t.me/reinstall_os)
-[![Github Sponsors](https://img.shields.io/badge/sponsor-30363D?style=flat-square&logo=GitHub-Sponsors&logoColor=#EA4AAA)](https://github.com/sponsors/bin456789)
+[![Lines of Code](https://aschey.tech/tokei/github/bin456789/reinstall?category=code&label=Lines%20of%20Code&style=flat-square)](https://github.com/aschey/vercel-tokei)
+<!-- [![Lines of Code](https://tokei.rs/b1/github/bin456789/reinstall?category=code&label=Lines%20of%20Code&style=flat-square)](https://github.com/XAMPPRocky/tokei_rs) -->
 
-One-Click Script to Reinstall System [中文](README.md)
+One-Click system reinstallation script for VPS [中文](README.md)
 
-[![Sponsors](https://raw.githubusercontent.com/bin456789/sponsors/refs/heads/master/sponsors.svg)](https://github.com/sponsors/bin456789)
+## Introduction
 
-## Highlights
-
-- One-click Linux installation: Supports 19 common distributions.
-- One-click Windows installation: Uses the official ISO for installation instead of custom images. The script can automatically retrieves the ISO link and installs common drivers like `Virtio`.
-- Supports installation in any direction, i.e., `Linux to Linux`, `Linux to Windows`, `Windows to Windows`, `Windows to Linux`
-- No need to input IP parameters; automatically recognizes dynamic and static IPs, supports `/32`, `/128`, `gateway outside subnet`, `IPv6 only`, `dual NIC`
+- One-click reinstallation to Linux: Supports 19 common distributions.
+- One-click reinstallation to Windows: Uses the official original ISO instead of custom images. The script can automatically fetch the ISO link and installs public cloud drivers like `VirtIO`.
+- Supports reinstallation in any direction, i.e., `Linux to Linux`, `Linux to Windows`, `Windows to Windows`, `Windows to Linux`
+- Automatically configures IP and intelligently sets it as static or dynamic. Supports `/32`, `/128`, `gateway outside subnet`, `IPv6 only`, `IPv4/IPv6 on different NIC`
 - Specially optimized for low-spec servers, requires less memory than the official netboot
 - Uses partition table ID to identify hard drives throughout the process, ensuring no wrong disk is written
 - Supports BIOS and EFI boot, and ARM Server
 - No homemades image included, all resources are obtained in real-time from mirror sites
+
+If this helped you, you can buy me a milk tea.
+[![Donate](https://img.shields.io/badge/Donate-30363D?style=for-the-badge&logo=GitHub-Sponsors&logoColor=#EA4AAA)](https://github.com/sponsors/bin456789)
+
+[![Sponsors](https://raw.githubusercontent.com/bin456789/sponsors/refs/heads/master/sponsors.svg)](https://github.com/sponsors/bin456789)
+
+### Feedback
+
+[![GitHub Issues](https://img.shields.io/badge/GitHub-%23121011.svg?style=for-the-badge&logo=github&logoColor=white)](https://github.com/bin456789/reinstall/issues)
+[![Telegram Group](https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/reinstall_os)
+
+## Quick Start
+
+- [Download](#download-current-system-is--linux)
+- [Feature 1. One-click reinstallation to Linux](#feature-1-install--linux)
+- [Feature 2. One-click DD Raw image to hard disk](#feature-2-dd-raw-image-to-hard-disk)
+- [Feature 3. One-click reboot to Alpine Live OS](#feature-3-reboot-to--alpine-live-os)
+- [Feature 4. One-click reboot to netboot.xyz](#feature-4-reboot-to--netbootxyz)
+- [Feature 5. One-click reinstallation to Windows](#feature-5-install--windows-iso)
 
 ## System Requirements
 
@@ -31,22 +47,22 @@ The system requirements for the target system are as follows:
 
 | System                                                                                                                                                                                                                                                                                                                                                                 | Version                               | Memory    | Disk             |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- | --------- | ---------------- |
-| <img width="16" height="16" src="https://www.alpinelinux.org/alpine-logo.ico" /> Alpine                                                                                                                                                                                                                                                                                | 3.19, 3.20, 3.21, 3.22                | 256 MB    | 1 GB             |
+| <img width="16" height="16" src="https://www.alpinelinux.org/alpine-logo.ico" /> Alpine                                                                                                                                                                                                                                                                                | 3.20, 3.21, 3.22, 3.23                | 256 MB    | 1 GB             |
 | <img width="16" height="16" src="https://www.debian.org/favicon.ico" /> Debian                                                                                                                                                                                                                                                                                         | 9, 10, 11, 12, 13                     | 256 MB    | 1 ~ 1.5 GB ^     |
 | <img width="16" height="16" src="https://github.com/bin456789/reinstall/assets/7548515/f74b3d5b-085f-4df3-bcc9-8a9bd80bb16d" /> Kali                                                                                                                                                                                                                                   | Rolling                               | 256 MB    | 1 ~ 1.5 GB ^     |
-| <img width="16" height="16" src="https://documentation.ubuntu.com/server/_static/favicon.png" /> Ubuntu                                                                                                                                                                                                                                                                | 16.04 LTS - 24.04 LTS, 25.04          | 512 MB \* | 2 GB             |
+| <img width="16" height="16" src="https://documentation.ubuntu.com/server/_static/favicon.png" /> Ubuntu                                                                                                                                                                                                                                                                | 16.04 LTS - 24.04 LTS, 25.10          | 512 MB \* | 2 GB             |
 | <img width="16" height="16" src="https://img.alicdn.com/imgextra/i1/O1CN01oJnJZg1yK4RzI4Rx2_!!6000000006559-2-tps-118-118.png" /> Anolis                                                                                                                                                                                                                               | 7, 8, 23                              | 512 MB \* | 5 GB             |
-| <img width="16" height="16" src="https://www.redhat.com/favicon.ico" /> RHEL &nbsp;<img width="16" height="16" src="https://almalinux.org/fav/favicon.ico" /> AlmaLinux &nbsp;<img width="16" height="16" src="https://rockylinux.org/favicon.png" /> Rocky &nbsp;<img width="16" height="16" src="https://www.oracle.com/asset/web/favicons/favicon-32.png" /> Oracle | 8, 9, 10 (if released)                | 512 MB \* | 5 GB             |
+| <img width="16" height="16" src="https://www.redhat.com/favicon.ico" /> RHEL &nbsp;<img width="16" height="16" src="https://almalinux.org/fav/favicon.ico" /> AlmaLinux &nbsp;<img width="16" height="16" src="https://rockylinux.org/favicon.png" /> Rocky &nbsp;<img width="16" height="16" src="https://www.oracle.com/asset/web/favicons/favicon-32.png" /> Oracle | 8, 9, 10                              | 512 MB \* | 5 GB             |
 | <img width="16" height="16" src="https://opencloudos.org/qq.ico" /> OpenCloudOS                                                                                                                                                                                                                                                                                        | 8, 9, Stream 23                       | 512 MB \* | 5 GB             |
 | <img width="16" height="16" src="https://www.centos.org/assets/icons/favicon.svg" /> CentOS Stream                                                                                                                                                                                                                                                                     | 9, 10                                 | 512 MB \* | 5 GB             |
-| <img width="16" height="16" src="https://fedoraproject.org/favicon.ico" /> Fedora                                                                                                                                                                                                                                                                                      | 41, 42                                | 512 MB \* | 5 GB             |
-| <img width="16" height="16" src="https://www.openeuler.org/favicon.ico" /> openEuler                                                                                                                                                                                                                                                                                   | 20.03 LTS - 24.03 LTS, 25.03          | 512 MB \* | 5 GB             |
-| <img width="16" height="16" src="https://static.opensuse.org/favicon.ico" /> openSUSE                                                                                                                                                                                                                                                                                  | Leap 15.6, Tumbleweed (Rolling)       | 512 MB \* | 5 GB             |
-| <img width="16" height="16" src="https://nixos.org/favicon.svg" /> NixOS                                                                                                                                                                                                                                                                                               | 25.05                                 | 512 MB    | 5 GB             |
+| <img width="16" height="16" src="https://fedoraproject.org/favicon.ico" /> Fedora                                                                                                                                                                                                                                                                                      | 42, 43                                | 512 MB \* | 5 GB             |
+| <img width="16" height="16" src="https://www.openeuler.org/favicon.ico" /> openEuler                                                                                                                                                                                                                                                                                   | 20.03 LTS - 24.03 LTS, 25.09          | 512 MB \* | 5 GB             |
+| <img width="16" height="16" src="https://static.opensuse.org/favicon.ico" /> openSUSE                                                                                                                                                                                                                                                                                  | Leap 15.6, 16.0, Tumbleweed (Rolling) | 512 MB \* | 5 GB             |
+| <img width="16" height="16" src="https://nixos.org/favicon.svg" /> NixOS                                                                                                                                                                                                                                                                                               | 25.11                                 | 512 MB    | 5 GB             |
 | <img width="16" height="16" src="https://archlinux.org/static/favicon.png" /> Arch                                                                                                                                                                                                                                                                                     | Rolling                               | 512 MB    | 5 GB             |
 | <img width="16" height="16" src="https://www.gentoo.org/assets/img/logo/gentoo-g.png" /> Gentoo                                                                                                                                                                                                                                                                        | Rolling                               | 512 MB    | 5 GB             |
-| <img width="16" height="16" src="https://aosc.io/assets/distros/aosc-os.svg" /> AOSC OS                                                                                                                                                                                                                                                                                | Rolling                               | 512 MB    | 5 GB             |
-| <img width="16" height="16" src="https://www.fnnas.com/favicon.ico" /> fnOS                                                                                                                                                                                                                                                                                            | Beta                                  | 512 MB    | 8 GB             |
+| <img width="16" height="16" src="https://aosc.io/distros/aosc-os.svg" /> AOSC OS                                                                                                                                                                                                                                                                                       | Rolling                               | 512 MB    | 5 GB             |
+| <img width="16" height="16" src="https://www.fnnas.com/favicon.ico" /> fnOS                                                                                                                                                                                                                                                                                            | 1                                     | 512 MB    | 8 GB             |
 | <img width="16" height="16" src="https://blogs.windows.com/wp-content/uploads/prod/2022/09/cropped-Windows11IconTransparent512-32x32.png" /> Windows (DD)                                                                                                                                                                                                              | Any                                   | 512 MB    | Depends on image |
 | <img width="16" height="16" src="https://blogs.windows.com/wp-content/uploads/prod/2022/09/cropped-Windows11IconTransparent512-32x32.png" /> Windows (ISO)                                                                                                                                                                                                             | Vista, 7, 8.x (Server 2008 - 2012 R2) | 512 MB    | 25 GB            |
 | <img width="16" height="16" src="https://blogs.windows.com/wp-content/uploads/prod/2022/09/cropped-Windows11IconTransparent512-32x32.png" /> Windows (ISO)                                                                                                                                                                                                             | 10, 11 (Server 2016 - 2025)           | 1 GB      | 25 GB            |
@@ -56,6 +72,13 @@ The system requirements for the target system are as follows:
 ^ Indicates requiring either 256 MB memory + 1.5 GB disk, or 512 MB memory + 1 GB disk
 
 > [!WARNING]
+>
+> In theory it also supports dedicated servers and PCs
+>
+> but if you can use IPMI or a USB drive, this script is not recommended.
+
+> [!WARNING]
+>
 > ❌ This script does not support OpenVZ or LXC virtual machines.
 >
 > Please use <https://github.com/LloydAsp/OsMutation> instead.
@@ -65,13 +88,13 @@ The system requirements for the target system are as follows:
 For server outside China:
 
 ```bash
-curl -O https://raw.githubusercontent.com/bin456789/reinstall/main/reinstall.sh || wget -O reinstall.sh $_
+curl -O https://raw.githubusercontent.com/bin456789/reinstall/main/reinstall.sh || wget -O ${_##*/} $_
 ```
 
 For server inside China:
 
 ```bash
-curl -O https://cnb.cool/bin456789/reinstall/-/git/raw/main/reinstall.sh || wget -O reinstall.sh $_
+curl -O https://cnb.cool/bin456789/reinstall/-/git/raw/main/reinstall.sh || wget -O ${_##*/} $_
 ```
 
 ## Download (Current system is <img width="20" height="20" src="https://blogs.windows.com/wp-content/uploads/prod/2022/09/cropped-Windows11IconTransparent512-32x32.png" /> Windows)
@@ -117,57 +140,58 @@ certutil -urlcache -f -split https://cnb.cool/bin456789/reinstall/-/git/raw/main
 
 ### Feature 1: Install <img width="16" height="16" src="https://www.kernel.org/theme/images/logos/favicon.png" /> Linux
 
-- The username is `root` with a default password of `123@@@`.
+> [!CAUTION]
+>
+> This feature will erase **the entire hard disk** of the current system (including other partitions)!
+>
+> Data is priceless — please think twice before proceeding!
+
+- Username `root`. The script prompts for a password. If left blank, a random one is generated.
 - When installing the latest version, the version number does not need to be specified.
 - Maximizes disk space usage: no boot partition (except for Fedora) and no swap partition.
 - Automatically selects different optimized kernels based on machine type, such as `Cloud` or `HWE` kernels.
-- When installing Red Hat, you must provide the `qcow2` image link obtained from <https://access.redhat.com/downloads/content/rhel>. You can also install other RHEL-based OS, such as `Alibaba Cloud Linux` and `TencentOS Server`.
+- When installing Red Hat, you must provide the `qcow2` image link obtained from <https://access.redhat.com/downloads/content/rhel>. You can also install `qcow2` of other RHEL-based OS, such as `Alibaba Cloud Linux` and `TencentOS Server`.
 - After reinstallation, if you need to change the SSH port or switch to key-based login, make sure to also modify the files inside `/etc/ssh/sshd_config.d/`.
 
 ```bash
 bash reinstall.sh anolis      7|8|23
                   rocky       8|9|10
-                  oracle      8|9
+                  oracle      8|9|10
                   almalinux   8|9|10
                   opencloudos 8|9|23
                   centos      9|10
-                  fedora      41|42
-                  nixos       25.05
+                  fnos        1
+                  nixos       25.11
+                  fedora      42|43
                   debian      9|10|11|12|13
-                  opensuse    15.6|tumbleweed
-                  alpine      3.19|3.20|3.21|3.22
-                  openeuler   20.03|22.03|24.03|25.03
-                  ubuntu      16.04|18.04|20.04|22.04|24.04|25.04 [--minimal]
+                  alpine      3.20|3.21|3.22|3.23
+                  opensuse    15.6|16.0|tumbleweed
+                  openeuler   20.03|22.03|24.03|25.09
+                  ubuntu      16.04|18.04|20.04|22.04|24.04|25.10 [--minimal]
                   kali
                   arch
                   gentoo
                   aosc
-                  fnos
                   redhat      --img="http://access.cdn.redhat.com/xxx.qcow2"
 ```
 
 #### Optional Parameters
 
 - `--password PASSWORD` Set the password
-- `--ssh-key KEY` Set up SSH login public key, supports these formats. When using public key, password is empty.
-  - `--ssh-key "ssh-rsa ..."`
-  - `--ssh-key "ssh-ed25519 ..."`
-  - `--ssh-key "ecdsa-sha2-nistp256/384/521 ..."`
-  - `--ssh-key http://path/to/public_key`
-  - `--ssh-key github:your_username`
-  - `--ssh-key gitlab:your_username`
-  - `--ssh-key /path/to/public_key`
-  - `--ssh-key C:\path\to\public_key`
+- `--ssh-key KEY` Set up SSH login public key, [formatted as follows](#--ssh-key). When using public key, password is empty.
 - `--ssh-port PORT` Change the SSH port (for log observation during installation and for the new system)
-- `--web-port PORT` Change the Web port (for log observation during installation)
-- `--frpc-toml /path/to/frpc.toml` Add frpc for intranet tunneling
-- `--hold 2` Prevent reboot after installation completes, allowing SSH login to modify system content; the system is mounted at `/os` (this feature is not supported on Debian/Kali).
+- `--web-port PORT` Change the Web port (for log observation during installation only)
+- `--frpc-toml PATH` Add frpc for intranet tunneling. Parameter can be local filepath or HTTP URL
+- `--hold 1` Reboot only into install environment, without running installer, only for SSH connect to test network connection.
+- `--hold 2` Prevent reboot after installation completes, allowing SSH login to modify system content; the system is mounted at `/target` for Debian/Kali and `/os` for other distros.
 
 > [!TIP]
-> When installing Debian/Kali, x86 architectures can monitor the installation progress through VNC from server provider, while ARM architectures can use the serial console.
 >
-> When installing other systems, can monitor the progress through various methods (SSH, HTTP 80 port, VNC from server provider, serial console).
-> <br />Even if errors occur during the installation process, you can still install to Alpine via SSH by running `/trans.sh alpine`
+> Can monitor the progress through various methods (SSH, HTTP 80 port, VNC from server provider, serial console).
+>
+> Even if errors occur during the installation process, SSH is available for manual recovery.
+>
+> If the target system is not Debian/Kali, run `/trans.sh alpine` can automatically recover to Alpine Linux.
 
 <details>
 
@@ -201,9 +225,15 @@ bash reinstall.sh ubuntu --installer
 
 </details>
 
-### Feature 2: DD
+### Feature 2: DD RAW image to hard disk
 
-- Supports `raw` and `vhd` image formats (either uncompressed or compressed as `.gz`, `.xz`, `.zst`, `.tar`, `.tar.gz`, `.tar.xz`, `.tar.zst`).
+> [!CAUTION]
+>
+> This feature will erase **the entire hard disk** of the current system (including other partitions)!
+>
+> Data is priceless — please think twice before proceeding!
+
+- Supports `raw` and fixed-size `vhd` image formats. Either uncompressed or compressed as `.gz`, `.xz`, `.zst`, `.tar`, `.tar.gz`, `.tar.xz`, `.tar.zst`.
 - When deploy a Windows image, the system disk will be automatically expanded, and machines with a static IP will have their IP configured, and may take a few minutes after the first boot for the configuration to take effect.
 - When deploy a Linux image, will **NOT** modify any contents of the image.
 
@@ -217,42 +247,49 @@ bash reinstall.sh dd --img "https://example.com/xxx.xz"
 - `--rdp-port PORT` Change RDP port (DD Windows only)
 - `--ssh-port PORT` Change SSH port (for log observation during installation)
 - `--web-port PORT` Change Web port (for log observation during installation)
-- `--frpc-toml /path/to/frpc.toml` Add frpc for intranet tunneling (DD Windows only)
-- `--hold 2` Prevent reboot after the DD process finishes, allowing SSH login to modify system content. The Windows system will be mounted at `/os`, but Linux systems will **NOT** be automatically mounted.
+- `--frpc-toml PATH` Add frpc for intranet tunneling (DD Windows only). Parameter can be local filepath or HTTP URL
+- `--hold 1` Reboot only into install environment, without running installer, only for SSH connect to test network connection.
+- `--hold 2` Prevent reboot after the DD process finishes. For SSH login to modify system content. The Windows system will be mounted at `/os`, but Linux systems will **NOT** be automatically mounted.
 
 > [!TIP]
+>
 > Can monitor the progress through various methods (SSH, HTTP 80 port, VNC from server provider, serial console).
-> <br />Even if errors occur during the installation process, you can still install to Alpine via SSH by running `/trans.sh alpine`
+>
+> Even if errors occur during the installation process, SSH is available for manual recovery.
+>
+> Or Run `/trans.sh alpine` to automatically recover to Alpine Linux.
 
-### Feature 3: Reboot to <img width="16" height="16" src="https://www.alpinelinux.org/alpine-logo.ico" /> Alpine Live OS (RAM OS)
+### Feature 3: Reboot to <img width="16" height="16" src="https://www.alpinelinux.org/alpine-logo.ico" /> Alpine Live OS
 
-- You can use SSH to backup/restore disk, manually perform DD operations, modify partitions, and manually install Alpine, Arch, Gentoo, and other systems.
-- Username `root`, Default password `123@@@`
-- If manual operations do not damage the original system, rebooting will return to the original system.
+- You can use SSH to backup/restore disk, manually perform DD operations, partition modifications, manual Alpine installation, and other operations.
+- Username `root`. The script prompts for a password. If left blank, a random one is generated.
+
+> [!TIP]
+>
+> Although the script being run is `reinstall`, this feature **does not** delete any data or perform an automatic reinstallation; manual user operation is required.
+>
+> If the user does not damage the original system during manual operation, rebooting will return to the original system.
 
 ```bash
-bash reinstall.sh alpine --hold=1
+bash reinstall.sh alpine --hold 1
 ```
 
 #### Optional Parameters
 
 - `--password PASSWORD` Set password
 - `--ssh-port PORT` Change SSH port
-- `--ssh-key KEY` Set up SSH login public key, supports these formats. When using public key, password is empty.
-  - `--ssh-key "ssh-rsa ..."`
-  - `--ssh-key "ssh-ed25519 ..."`
-  - `--ssh-key "ecdsa-sha2-nistp256/384/521 ..."`
-  - `--ssh-key http://path/to/public_key`
-  - `--ssh-key github:your_username`
-  - `--ssh-key gitlab:your_username`
-  - `--ssh-key /path/to/public_key`
-  - `--ssh-key C:\path\to\public_key`
-- `--frpc-toml /path/to/frpc.toml` Add frpc for intranet tunneling
+- `--ssh-key KEY` Set up SSH login public key, [formatted as follows](#--ssh-key). When using public key, password is empty.
+- `--frpc-toml PATH` Add frpc for intranet tunneling. Parameter can be local filepath or HTTP URL
 
 ### Feature 4: Reboot to <img width="16" height="16" src="https://netboot.xyz/img/favicon.ico" /> netboot.xyz
 
 - Can manually install [more systems](https://github.com/netbootxyz/netboot.xyz?tab=readme-ov-file#what-operating-systems-are-currently-available-on-netbootxyz) using vendor backend VNC.
-- If manual operations do not damage the original system, rebooting will return to the original system.
+
+> [!TIP]
+>
+> Although the script being run is `reinstall`, this feature **does not** delete any data or perform an automatic reinstallation; manual user operation is required.
+>
+> If the user does not damage the original system during manual operation, rebooting will return to the original system.
 
 ```bash
 bash reinstall.sh netboot.xyz
@@ -264,10 +301,17 @@ bash reinstall.sh netboot.xyz
 
 ![Windows Installation](https://github.com/bin456789/reinstall/assets/7548515/07c1aea2-1ce3-4967-904f-aaf9d6eec3f7)
 
-- Username `administrator`, Default password `123@@@`
+> [!CAUTION]
+>
+> This feature will erase **the entire hard disk** of the current system (including other partitions)!
+>
+> Data is priceless — please think twice before proceeding!
+
+- Username `administrator`. The script prompts for a password. If left blank, a random one is generated.
 - If remote login fails, try using the username `.\administrator`.
 - The machine with a static IP will automatically configure the IP. It may take a few minutes to take effect on the first boot.
-- Supports all languages.
+- Supports ISO images in any language.
+- Supports bypassing Windows 11 hardware requirements.
 
 #### Supported Systems
 
@@ -276,7 +320,7 @@ bash reinstall.sh netboot.xyz
   - Windows Server Essentials \*
   - Windows Server (Semi) Annual Channel \*
   - Hyper-V Server \*
-  - Azure Stack HCI \*
+  - Azure Local (Azure Stack HCI) \*
 
 #### Method 1: Let the Script Automatically Search for ISO
 
@@ -367,7 +411,6 @@ bash reinstall.sh windows \
   - <https://www.microsoft.com/software-download/windows11>
   - <https://www.microsoft.com/software-download/windows11arm64>
 - Evaluation
-  - <https://www.microsoft.com/evalcenter/download-windows-10-enterprise>
   - <https://www.microsoft.com/evalcenter/download-windows-11-enterprise>
   - <https://www.microsoft.com/evalcenter/download-windows-11-iot-enterprise-ltsc-eval>
   - <https://www.microsoft.com/evalcenter/download-windows-server-2012-r2>
@@ -386,18 +429,19 @@ bash reinstall.sh windows \
 - `--password PASSWORD` Set Password
 - `--allow-ping` Configure Windows Firewall to Allow Ping Responses
 - `--rdp-port PORT` Change RDP port
-- `--ssh-port PORT` Change SSH port (for log observation during installation)
-- `--web-port PORT` Change Web port (for log observation during installation)
+- `--ssh-port PORT` Change SSH port (for log observation during installation only)
+- `--web-port PORT` Change Web port (for log observation during installation only)
 - `--add-driver INF_OR_DIR` Add additional driver, specifying .inf path, or the folder contains .inf file.
-  - The driver must be downloaded locally first.
+  - The driver must be downloaded to current system first.
   - This parameter can be set multiple times to add different driver.
-- `--frpc-toml /path/to/frpc.toml` Add frpc for intranet tunneling
-- `--hold 2` Allow SSH connections for modifying the disk content before rebooting into the official Windows installation program, with the disk mounted at `/os`.
+- `--frpc-toml PATH` Add frpc for intranet tunneling. Parameter can be local filepath or HTTP URL
+- `--hold 1` Reboot only into install environment, without running installer, only for SSH connect to test network connection.
+- `--hold 2` Allow SSH connections for modifying `boot.wim`, `install.wim` or other contents before rebooting into the official Windows installation program, with the disk mounted at `/os`.
 
 #### The following drivers will automatic download and install as needed, without the need for manual addition
 
-- Virtio ([Virtio][virtio-virtio], [Alibaba Cloud][virtio-aliyun], [Tencent Cloud][virtio-qcloud], [GCP][virtio-gcp])
-- XEN ([~~XEN~~][xen-xen] (unsigned), [Citrix][xen-citrix], [AWS][xen-aws])
+- VirtIO ([Community][virtio-virtio], [Alibaba Cloud][virtio-aliyun], [Tencent Cloud][virtio-qcloud], [GCP][virtio-gcp])
+- XEN ([~~Community~~][xen-xen] (unsigned), [Citrix][xen-citrix], [AWS][xen-aws])
 - AWS ([ENA Network Adapter][aws-ena], [NVME Storage Controller][aws-nvme])
 - GCP ([gVNIC Network Adapter][gcp-gvnic], [GGA Display Adapter][gcp-gga])
 - Azure ([MANA Network Adapter][azure-mana])
@@ -421,7 +465,7 @@ bash reinstall.sh windows \
 [intel-nic-8.1]: https://www.intel.com/content/www/us/en/download/17479/intel-network-adapter-driver-for-windows-8-1.html
 [intel-nic-10]: https://www.intel.com/content/www/us/en/download/18293/intel-network-adapter-driver-for-windows-10.html
 [intel-nic-11]: https://www.intel.com/content/www/us/en/download/727998/intel-network-adapter-driver-for-microsoft-windows-11.html
-[intel-nic-2008-r2]: https://www.intel.com/content/www/us/en/download/15591/intel-network-adapter-driver-for-windows-server-2008-r2-final-release.html
+[intel-nic-2008-r2]: https://web.archive.org/web/20250501002542/https://www.intel.com/content/www/us/en/download/15591/intel-network-adapter-driver-for-windows-server-2008-r2-final-release.html
 [intel-nic-2012]: https://www.intel.com/content/www/us/en/download/16789/intel-network-adapter-driver-for-windows-server-2012.html
 [intel-nic-2012-r2]: https://www.intel.com/content/www/us/en/download/17480/intel-network-adapter-driver-for-windows-server-2012-r2.html
 [intel-nic-2016]: https://www.intel.com/content/www/us/en/download/18737/intel-network-adapter-driver-for-windows-server-2016.html
@@ -431,7 +475,7 @@ bash reinstall.sh windows \
 
 #### How to Specify the Image Name `--image-name`
 
-Typically, an ISO will contain multiple system versions, such as Home Edition and Professional Edition. The image name `--image-name` is used to specify the version to be installed, and it is case-insensitive when entered.
+An ISO usually contains multiple system editions, such as Home and Pro. Therefore, you need to use `--image-name` to specify the system edition (image name) to install, case-insensitive.
 
 You can use tools like DISM, DISM++, or Wimlib to query the image names included in the ISO.
 
@@ -454,14 +498,28 @@ Open File menu > Open Image File, select the iso to be installed to get the imag
 > Vista (Server 2008) and 32-bit systems may lack drivers.
 
 > [!WARNING]
-> For EFI machines without CSM enabled, Windows 7 (Server 2008 R2) cannot be installed.
 >
-> Hyper-V (Azure) requires selecting the appropriate VM generation: <https://learn.microsoft.com/windows-server/virtualization/hyper-v/plan/should-i-create-a-generation-1-or-2-virtual-machine-in-hyper-v>
+> For Windows 7 (Server 2008 R2) installation:
+>
+> 1. EFI-boot machines must enable CSM.
+>
+> 2. On Hyper-V (Azure), select Generation 1 VM. <https://learn.microsoft.com/windows-server/virtualization/hyper-v/plan/should-i-create-a-generation-1-or-2-virtual-machine-in-hyper-v>
 
 > [!WARNING]
+>
 > In the Chinese version of Windows 10 LTSC 2021 ISO `zh-cn_windows_10_enterprise_ltsc_2021_x64_dvd_033b7312.iso`, the `wsappx` process may indefinitely consume CPU resources.
 >
 > The solution is to update the system patches or manually install the `VCLibs` library <https://www.google.com/search?q=ltsc+wsappx>.
+
+> [!WARNING]
+>
+> When installing Windows ISOs released in `May 2022` or later on GCP, the system may repeatedly reboot during the Windows installation (PE) stage. You can resolve this issue using one of the following two methods:
+>
+> 1. Add the `--force-boot-mode bios` parameter. The script will install Windows in `BIOS boot + MBR partition table` mode.
+>
+>    (Optional) After installation, you can convert it to `EFI boot + GPT partition table` using the command `MBR2GPT /convert /allowFullOS`.
+>
+> 2. Create a custom RAW image and install it via DD.
 
 #### Considerations for Installing Windows on ARM
 
@@ -492,10 +550,33 @@ Log in to the server using Remote Desktop, open Device Manager, locate the graph
 
 </details>
 
-## Discussion
+## Parameter Format
 
-[![GitHub Issues](https://img.shields.io/badge/github-%23121011.svg?style=for-the-badge&logo=github&logoColor=white)](https://github.com/bin456789/reinstall/issues)
-[![Telegram Group](https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/reinstall_os)
+### --ssh-key
+
+- `--ssh-key "ssh-rsa ..."`
+- `--ssh-key "ssh-ed25519 ..."`
+- `--ssh-key "ecdsa-sha2-nistp256/384/521 ..."`
+- `--ssh-key http://path/to/public_key`
+- `--ssh-key github:your_username`
+- `--ssh-key gitlab:your_username`
+- `--ssh-key /path/to/public_key`
+- `--ssh-key C:\path\to\public_key`
+
+## How to Use an Old Version
+
+According to the Law of Bug Conservation, fixing old bugs often introduces new ones.
+
+If a new bug occurs, try using an older version to see if it works.
+
+Go to <https://github.com/bin456789/reinstall/commits/main> and find the old version’s `commit_id` on the right side.
+
+```bash
+commit_id=xxxxxxx
+curl -O https://raw.githubusercontent.com/bin456789/reinstall/$commit_id/reinstall.sh || wget -O ${_##*/} $_
+sed -i "/^confhome.*main$/s/main/$commit_id/" reinstall.sh
+bash reinstall.sh ...
+```
 
 ## How to Modify the Script for Your Own
 
@@ -504,8 +585,6 @@ Log in to the server using Remote Desktop, open Device Manager, locate the graph
 3. Make changes to the other code.
 
 ## Thanks
-
-[![Github Sponsors](https://img.shields.io/badge/sponsor-30363D?style=for-the-badge&logo=GitHub-Sponsors&logoColor=#EA4AAA)](https://github.com/sponsors/bin456789)
 
 Thanks to the following businesses for providing free servers.
 
