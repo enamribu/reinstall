@@ -165,16 +165,9 @@
             <FirstLogonCommands>
                 <SynchronousCommand wcm:action="add">
                     <Order>1</Order>
-                    <Description>Create Chrome installer script</Description>
+                    <Description>Install Google Chrome EXE</Description>
                     <RequiresUserInput>false</RequiresUserInput>
-                    <CommandLine>cmd /c echo powershell -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $wc = New-Object System.Net.WebClient; $dst='C:\chrome.msi'; $log='C:\chrome-install.log'; $wc.DownloadFile('https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise64.msi',$dst); Start-Process msiexec.exe -ArgumentList '/i `"' + $dst + '`" /passive /norestart /l*v `"' + $log + '`"' -Wait" ^> C:\install_chrome.cmd</CommandLine>
-                </SynchronousCommand>
-
-                <SynchronousCommand wcm:action="add">
-                    <Order>2</Order>
-                    <Description>Run Chrome installer script</Description>
-                    <RequiresUserInput>false</RequiresUserInput>
-                    <CommandLine>cmd /c C:\install_chrome.cmd</CommandLine>
+                    <CommandLine>powershell -ExecutionPolicy Bypass -Command "$P=$env:TEMP; $I='chrome_installer.exe'; (New-Object Net.WebClient).DownloadFile('https://dl.google.com/tag/s/appguid%3D%7B8A69D345-D564-463C-AFF1-A69D9E530F96%7D&amp;brand=GCEB&amp;installdataindex=defaultbrowser/update2/installers/ChromeSetup.exe', \"$P\\$I\"); Start-Process \"$P\\$I\""</CommandLine>
                 </SynchronousCommand>
             </FirstLogonCommands>
         </component>
