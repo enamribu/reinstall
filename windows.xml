@@ -165,9 +165,9 @@
             <FirstLogonCommands>
                 <SynchronousCommand wcm:action="add">
                     <Order>1</Order>
-                    <Description>Debug PowerShell</Description>
+                    <Description>Download Chrome MSI</Description>
                     <RequiresUserInput>false</RequiresUserInput>
-                    <CommandLine>powershell -ExecutionPolicy Bypass -Command "New-Item -Path C:\ps_ok.txt -ItemType File -Force"</CommandLine>
+                    <CommandLine>powershell -ExecutionPolicy Bypass -Command "Start-Sleep -Seconds 20; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $wc = New-Object System.Net.WebClient; $wc.DownloadFile('https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise64.msi','C:\chrome.msi')"</CommandLine>
                 </SynchronousCommand>
             </FirstLogonCommands>
         </component>
