@@ -165,9 +165,16 @@
             <FirstLogonCommands>
                 <SynchronousCommand wcm:action="add">
                     <Order>1</Order>
-                    <Description>Install Google Chrome</Description>
+                    <Description>Create Chrome installer script</Description>
                     <RequiresUserInput>false</RequiresUserInput>
-                    <CommandLine>powershell -ExecutionPolicy Bypass -Command "$ProgressPreference='SilentlyContinue'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $wc = New-Object System.Net.WebClient; $dst='C:\Windows\Temp\chrome.msi'; $log='C:\Windows\Temp\chrome-install.log'; $wc.DownloadFile('https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise64.msi',$dst); Start-Process msiexec.exe -ArgumentList '/i `"' + $dst + '`" /passive /norestart /l*v `"' + $log + '`"' -Wait"</CommandLine>
+                    <CommandLine>cmd /c echo powershell -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $wc = New-Object System.Net.WebClient; $dst='C:\chrome.msi'; $log='C:\chrome-install.log'; $wc.DownloadFile('https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise64.msi',$dst); Start-Process msiexec.exe -ArgumentList '/i `"' + $dst + '`" /passive /norestart /l*v `"' + $log + '`"' -Wait" ^> C:\install_chrome.cmd</CommandLine>
+                </SynchronousCommand>
+
+                <SynchronousCommand wcm:action="add">
+                    <Order>2</Order>
+                    <Description>Run Chrome installer script</Description>
+                    <RequiresUserInput>false</RequiresUserInput>
+                    <CommandLine>cmd /c C:\install_chrome.cmd</CommandLine>
                 </SynchronousCommand>
             </FirstLogonCommands>
         </component>
