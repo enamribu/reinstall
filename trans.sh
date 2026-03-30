@@ -1,6 +1,6 @@
 #!/bin/ash
 # shellcheck shell=dash
-# shellcheck disable=SC2086,SC3047,SC3036,SC3010,SC3001,SC3060
+# shellcheck disable=SC2086,SC3047,SC3036,SC3010,SC3001,SC3060,SC3015
 # alpine 默认使用 busybox ash
 # 注意 bash 和 ash 以下语句结果不同
 # [[ a = '*a' ]] && echo 1
@@ -779,16 +779,52 @@ is_windows_support_rdnss() {
 get_windows_version_from_windows_drive() {
     local os_dir=$1
 
-    apk add hivex pev
-    ntoskrnl_exe=$(find_file_ignore_case $os_dir/Windows/System32/ntoskrnl.exe)
+    # https://wiki.tcl-lang.org/page/Windows+OS+name
+    # https://nsis.sourceforge.io/Get_Windows_version
+
+    # win10+ 才有 CurrentMajorVersionNumber 和 CurrentMinorVersionNumber
+    # CurrentVersion            6.3
+    # CurrentMajorVersionNumber  10
+    # CurrentMinorVersionNumber   0
+
+    apk add hivex
     hive=$(find_file_ignore_case $os_dir/Windows/System32/config/SOFTWARE)
-    IFS=. read -r nt_ver_major nt_ver_minor _ rev_ver _ \
-        < <(peres -v "$ntoskrnl_exe" | grep 'Product Version:' | awk '{print $NF}')
-    nt_ver="$nt_ver_major.$nt_ver_minor"
+
+    get_current_version_key() {
+        hivexget "$hive" "Microsoft\Windows NT\CurrentVersion" "$1"
+    }
+
+    # nt_ver
+    if { nt_ver_major=$(get_current_version_key CurrentMajorVersionNumber) &&
+        nt_ver_minor=$(get_current_version_key CurrentMinorVersionNumber); } 2>/dev/null; then
+        nt_ver="$nt_ver_major.$nt_ver_minor"
+    else
+        # en_windows_vista_sp2_x64_dvd_342267.iso
+        # 安装前 CurrentVersion 是 6.0
+        # 安装后 CurrentVersion 是 6.0
+
+        # en_windows_vista_sp2_with_update_6003.23713_aio_7in1_x64_v26.01.13_by_adguard.iso
+        # 安装前 CurrentVersion 是 6.0.6002.18005
+        # 安装后 CurrentVersion 是 6.0
+
+        # 添加 cut 用于兼容这两种情况
+        nt_ver=$(get_current_version_key CurrentVersion | cut -d. -f1-2)
+    fi
+
+    # build_ver
     # win10 22h2 19045 的 exe/dll 版本还是 19041 的，因此要从注册表获取
-    build_ver=$(hivexget $hive 'Microsoft\Windows NT\CurrentVersion' CurrentBuildNumber)
-    echo "Version: $nt_ver_major.$nt_ver_minor.$build_ver.$rev_ver" >&2
-    apk del hivex pev
+    # vista sp2 iso 安装 KB4474419 后, CurrentBuild 是 6002, CurrentBuildNumber 是 6003
+    build_ver=$(get_current_version_key CurrentBuildNumber)
+
+    # rev_ver
+    # 实测 win10 winver 是从 UBR 读取 revision 版本
+    # vista sp2 iso 没有 UBR，后期有月度汇总更新包时才有 UBR
+    if ! rev_ver=$(get_current_version_key UBR 2>/dev/null); then
+        rev_ver=$(get_current_version_key BuildLabEx | cut -d. -f2)
+    fi
+
+    echo "Version: $nt_ver.$build_ver.$rev_ver" >&2
+    apk del hivex
 }
 
 is_elts() {
@@ -1121,6 +1157,17 @@ EOF
     post-up ip route add default via $ipv6_gateway dev $ethx
 EOF
             fi
+
+            # 额外的 IPv6 地址（子网不含网关的地址）
+            get_netconf_to ipv6_extra_addrs
+            if [ -n "$ipv6_extra_addrs" ]; then
+                (
+                    IFS=','
+                    for _addr in $ipv6_extra_addrs; do
+                        echo "    post-up ip -6 addr add $_addr dev $ethx" >>$conf_file
+                    done
+                )
+            fi
         fi
 
         # dns
@@ -1216,6 +1263,13 @@ networking = {
 EOF
 
     for ethx in $(get_eths); do
+        # ipv4 使用 DHCP 时显式开启 useDHCP
+        if is_dhcpv4; then
+            cat <<EOF >>$conf_file
+  interfaces.$ethx.useDHCP = true;
+EOF
+        fi
+
         # ipv4
         if is_staticv4; then
             get_netconf_to ipv4_addr
@@ -1493,12 +1547,12 @@ install_alpine() {
     chroot /os rc-update add fix-eth-name boot
 
     # 安装 frpc
-    if [ -s /configs/frpc.toml ]; then
+    if ls /configs/frpc.* >/dev/null 2>&1; then
         chroot /os apk add frp
         # chroot rc-update add 默认添加到 sysinit
         # 但不加 chroot 默认添加到 default
         chroot /os rc-update add frpc boot
-        cp /configs/frpc.toml /os/etc/frp/frpc.toml
+        cp -f /configs/frpc.* /os/etc/frp/
     fi
 
     # setup-disk 会自动选择固件，但不包括微码？
@@ -1724,19 +1778,40 @@ $(del_comment_lines </configs/ssh_keys | del_empty_lines | quote_line | add_spac
         nix_ssh_ports="services.openssh.ports = [ $ssh_port ];"
     fi
 
-    # 虽然是原始 frpc.toml (string) 转成 toml 类型，再转成最终使用的 frpc.toml (string)
-    # 但是可以避免原始 frpc.toml 有错误导致失联
-    if [ -s /configs/frpc.toml ]; then
+    if ls /configs/frpc.* >/dev/null 2>&1; then
         nix_frpc=$(
-            cat <<EOF
+            if false; then
+                # 原始 frpc.toml 转 toml 对象 ，再转成最终使用的 frpc.toml
+                # 可以避免原始 frpc.toml 有错误导致失联
+                # 但是 frpc 配置还支持 ini json yaml
+                # 因此不使用这个方法
+                cat <<EOF
 services.frp = {
   enable = true;
   role = "client";
   settings = builtins.fromTOML ''
-$(del_comment_lines </configs/frpc.toml | add_space 4)
+$(cat /configs/frpc.* | add_space 4)
   '';
 };
 EOF
+            else
+                # 直接使用原始文件
+                (
+                    umask 077
+                    cp /configs/frpc.* /os/etc/nixos/
+                )
+                ext=$(basename /configs/frpc.* | awk -F. '{print $NF}')
+                cat <<EOF
+services.frp = {
+  enable = true;
+  role = "client";
+};
+systemd.services.frp.serviceConfig = {
+  LoadCredential = "frpc.$ext:/etc/nixos/frpc.$ext";
+  ExecStart = lib.mkForce "\${pkgs.frp}/bin/frpc -c \\\${CREDENTIALS_DIRECTORY}/frpc.$ext";
+};
+EOF
+            fi
         )
     fi
 
@@ -1869,7 +1944,7 @@ get_frpc_url() {
 add_frpc_systemd_service_if_need() {
     local os_dir=$1
 
-    if [ -s /configs/frpc.toml ]; then
+    if ls /configs/frpc.* >/dev/null 2>&1; then
         mkdir -p "$os_dir/usr/local/bin"
         mkdir -p "$os_dir/usr/local/etc/frpc"
 
@@ -1885,7 +1960,7 @@ add_frpc_systemd_service_if_need() {
         chmod a+x "$os_dir/usr/local/bin/frpc"
 
         # frpc conf
-        cp /configs/frpc.toml "$os_dir/usr/local/etc/frpc/frpc.toml"
+        cp -f /configs/frpc.* "$os_dir/usr/local/etc/frpc/"
 
         # 添加服务
         add_systemd_service "$os_dir" frpc
@@ -2110,7 +2185,26 @@ sync-uri = $mirror_long/binpackages/$profile_ver/$binpkg_type
 EOF
 
         # 下载公钥
-        chroot $os_dir getuto
+
+        # getuto 会判断是否有 ${TERM} 且 ${TERM} 不是 dumb
+        # 符合条件则 source /lib/gentoo/functions.sh 导入 ebegin 等方法
+        # 不符合条件则自行创建 ebegin 等方法
+
+        # /lib/gentoo/functions.sh 会判断是否有 ${RC_OPENRC_PID}
+        # 有的话就不会导入 /functions/openrc.sh，也就不会导入 ebegin 方法
+
+        # 在 ssh 里运行 /trans.sh 时，没有 ${RC_OPENRC_PID}，${TERM} 是 xterm
+        # 因此 chroot $os_dir getuto 时不会报错
+
+        # 在 locald 里运行 /trans.sh 时，有 ${RC_OPENRC_PID}，${TERM} 是 linux
+        # 因此 chroot $os_dir getuto 时会报错说 ebegin: command not found
+
+        # 有两个解决方法
+        if true; then
+            TERM=dumb chroot $os_dir getuto
+        else
+            env -u RC_OPENRC_PID chroot $os_dir getuto
+        fi
 
         set_locale
 
@@ -2448,6 +2542,22 @@ is_xda_gt_2t() {
     [ "$disk_size" -gt "$disk_2t" ]
 }
 
+is_ends_with_digit() {
+    [[ "$1" =~ [0-9]$ ]]
+}
+
+xda() {
+    if [ -n "$1" ]; then
+        if is_ends_with_digit "$xda"; then
+            echo "${xda}p$1"
+        else
+            echo "${xda}$1"
+        fi
+    else
+        echo "$xda"
+    fi
+}
+
 create_part() {
     # 除了 dd 都会用到
     info "Create Part"
@@ -2462,7 +2572,6 @@ create_part() {
     # TODO: 先检测iso链接/各种链接
     # wipefs -a /dev/$xda
 
-    # xda*1 星号用于 nvme0n1p1 的字母 p
     # shellcheck disable=SC2154
     if [ "$distro" = windows ]; then
         if ! size_bytes=$(get_link_file_size "$iso"); then
@@ -2495,10 +2604,10 @@ create_part() {
                 set 3 msftdata on
             update_part
 
-            mkfs.fat -n efi /dev/$xda*1                           #1 efi
-            dd if=/dev/zero of="$(ls /dev/$xda*2)" bs=1M count=16 #2 msr
-            mkfs.ntfs -f -F -L os /dev/$xda*3                     #3 os
-            mkfs.ntfs -f -F -L installer /dev/$xda*4              #4 installer
+            mkfs.fat -n efi "/dev/$(xda 1)"                   #1 efi
+            dd if=/dev/zero of="/dev/$(xda 2)" bs=1M count=16 #2 msr
+            mkfs.ntfs -f -F -L os "/dev/$(xda 3)"             #3 os
+            mkfs.ntfs -f -F -L installer "/dev/$(xda 4)"      #4 installer
         else
             # bios + mbr 启动盘最大可用 2t
             if is_xda_gt_2t; then
@@ -2515,13 +2624,10 @@ create_part() {
                 set 1 boot on
             update_part
 
-            mkfs.ntfs -f -F -L os /dev/$xda*1        #1 os
-            mkfs.ntfs -f -F -L installer /dev/$xda*2 #2 installer
+            mkfs.ntfs -f -F -L os "/dev/$(xda 1)"        #1 os
+            mkfs.ntfs -f -F -L installer "/dev/$(xda 2)" #2 installer
         fi
     elif [ "$distro" = fnos ]; then
-        # 先用 100% 分区安装后再缩小没意义，因为小硬盘用 100% 还是装不了
-        # 因此直接用用户输入的分区大小
-
         # 1. 官方安装器对系统盘大小的定义包含引导分区大小
         # 2. 官方 efi 用的是 1MiB-100M，但我们用 1MiB-101MiB
 
@@ -2553,47 +2659,53 @@ create_part() {
         # The location 20480MiB is outside of the device /dev/vda.
         # 但是 100% 分区后 end 就是 20480MiB
 
-        os_part_end=${expect_m}MiB
         if [ "$expect_m" -ge "$max_can_use_m" ]; then
-            echo "Expect size is equal/greater than max size. Setting to 100%"
-            os_part_end=100%
+            warn "Expect size is equal/greater than max size. Uses max size."
+            NEED_SHRINK_FNOS_OS_PART=false
+            FNOS_OS_PART_END_M=$max_can_use_m
+        else
+            NEED_SHRINK_FNOS_OS_PART=true
+            FNOS_OS_PART_END_M=$expect_m
         fi
 
-        # 需关闭这几个特性，否则 grub 无法识别
+        # fnos 的 grub 是 debian 11 的
+        # 需关闭 metadata_csum_seed，否则 grub 会进入 grub rescue 模式，但 efi 下一切正常
+        # orphan_file 不需要关，但是官方安装器安装的系统分区没有这个特性，因此我们也关闭它
         ext4_opts="-O ^metadata_csum_seed,^orphan_file"
+
         if is_efi; then
             parted /dev/$xda -s -- \
                 mklabel gpt \
                 mkpart BOOT fat32 1MiB 101MiB \
-                mkpart SYSTEM ext4 101MiB $os_part_end \
+                mkpart SYSTEM ext4 101MiB 100% \
                 set 1 esp on
             update_part
 
-            mkfs.fat /dev/$xda*1                #1 efi
-            mkfs.ext4 -F $ext4_opts /dev/$xda*2 #2 os + installer
+            mkfs.fat "/dev/$(xda 1)"                #1 efi
+            mkfs.ext4 -F $ext4_opts "/dev/$(xda 2)" #2 os + installer
         elif is_xda_gt_2t; then
             # bios > 2t
             # 官方安装器是 mkpart BOOT 1M 100M，无论 esp 或者 bios_grub 都用这个分区和大小
             parted /dev/$xda -s -- \
                 mklabel gpt \
                 mkpart BOOT ext4 1MiB 101MiB \
-                mkpart SYSTEM ext4 101MiB $os_part_end \
+                mkpart SYSTEM ext4 101MiB 100% \
                 set 1 bios_grub on
             update_part
 
-            echo                                #1 bios_boot
-            mkfs.ext4 -F $ext4_opts /dev/$xda*2 #2 os + installer
+            echo                                    #1 bios_boot
+            mkfs.ext4 -F $ext4_opts "/dev/$(xda 2)" #2 os + installer
         else
             # bios
             parted /dev/$xda -s -- \
                 mklabel msdos \
                 mkpart primary 1MiB 101MiB \
-                mkpart primary 101MiB $os_part_end \
+                mkpart primary 101MiB 100% \
                 set 2 boot on
             update_part
 
-            echo                                #1 官方安装有这个分区
-            mkfs.ext4 -F $ext4_opts /dev/$xda*2 #2 os + installer
+            echo                                    #1 官方安装有这个分区
+            mkfs.ext4 -F $ext4_opts "/dev/$(xda 2)" #2 os + installer
         fi
     elif is_use_cloud_image; then
         installer_part_size="$(get_cloud_image_part_size)"
@@ -2613,9 +2725,9 @@ create_part() {
                     set 1 esp on
                 update_part
 
-                mkfs.fat -n efi /dev/$xda*1           #1 efi
-                echo                                  #2 os 用目标系统的格式化工具
-                mkfs.ext4 -F -L installer /dev/$xda*3 #3 installer
+                mkfs.fat -n efi "/dev/$(xda 1)"           #1 efi
+                echo                                      #2 os 用目标系统的格式化工具
+                mkfs.ext4 -F -L installer "/dev/$(xda 3)" #3 installer
             else
                 parted /dev/$xda -s -- \
                     mklabel gpt \
@@ -2625,9 +2737,9 @@ create_part() {
                     set 1 bios_grub on
                 update_part
 
-                echo                                  #1 bios_boot
-                echo                                  #2 os 用目标系统的格式化工具
-                mkfs.ext4 -F -L installer /dev/$xda*3 #3 installer
+                echo                                      #1 bios_boot
+                echo                                      #2 os 用目标系统的格式化工具
+                mkfs.ext4 -F -L installer "/dev/$(xda 3)" #3 installer
             fi
         else
             # 使用 dd qcow2
@@ -2638,8 +2750,8 @@ create_part() {
                 mkpart '" "' ext4 -$installer_part_size 100%
             update_part
 
-            mkfs.ext4 -F -L os /dev/$xda*1        #1 os
-            mkfs.ext4 -F -L installer /dev/$xda*2 #2 installer
+            mkfs.ext4 -F -L os "/dev/$(xda 1)"        #1 os
+            mkfs.ext4 -F -L installer "/dev/$(xda 2)" #2 installer
         fi
     elif [ "$distro" = alpine ] || [ "$distro" = arch ] || [ "$distro" = gentoo ] ||
         [ "$distro" = nixos ] || [ "$distro" = aosc ]; then
@@ -2656,8 +2768,8 @@ create_part() {
                 set 1 boot on
             update_part
 
-            mkfs.fat /dev/$xda*1                #1 efi
-            mkfs.ext4 -F $ext4_opts /dev/$xda*2 #2 os
+            mkfs.fat "/dev/$(xda 1)"                #1 efi
+            mkfs.ext4 -F $ext4_opts "/dev/$(xda 2)" #2 os
         elif is_xda_gt_2t; then
             # bios > 2t
             parted /dev/$xda -s -- \
@@ -2667,8 +2779,8 @@ create_part() {
                 set 1 bios_grub on
             update_part
 
-            echo                                #1 bios_boot
-            mkfs.ext4 -F $ext4_opts /dev/$xda*2 #2 os
+            echo                                    #1 bios_boot
+            mkfs.ext4 -F $ext4_opts "/dev/$(xda 2)" #2 os
         else
             # bios
             parted /dev/$xda -s -- \
@@ -2677,7 +2789,7 @@ create_part() {
                 set 1 boot on
             update_part
 
-            mkfs.ext4 -F $ext4_opts /dev/$xda*1 #1 os
+            mkfs.ext4 -F $ext4_opts "/dev/$(xda 1)" #1 os
         fi
     else
         # 安装红帽系或ubuntu
@@ -2710,9 +2822,9 @@ create_part() {
                 set 1 boot on
             update_part
 
-            mkfs.fat -n efi /dev/$xda*1                      #1 efi
-            mkfs.ext4 -F -L os /dev/$xda*2                   #2 os
-            mkfs.ext4 -F -L installer $ext4_opts /dev/$xda*3 #2 installer
+            mkfs.fat -n efi "/dev/$(xda 1)"                      #1 efi
+            mkfs.ext4 -F -L os "/dev/$(xda 2)"                   #2 os
+            mkfs.ext4 -F -L installer $ext4_opts "/dev/$(xda 3)" #2 installer
         elif is_xda_gt_2t; then
             # bios > 2t
             parted /dev/$xda -s -- \
@@ -2723,9 +2835,9 @@ create_part() {
                 set 1 bios_grub on
             update_part
 
-            echo                                             #1 bios_boot
-            mkfs.ext4 -F -L os /dev/$xda*2                   #2 os
-            mkfs.ext4 -F -L installer $ext4_opts /dev/$xda*3 #3 installer
+            echo                                                 #1 bios_boot
+            mkfs.ext4 -F -L os "/dev/$(xda 2)"                   #2 os
+            mkfs.ext4 -F -L installer $ext4_opts "/dev/$(xda 3)" #3 installer
         else
             # bios
             parted /dev/$xda -s -- \
@@ -2735,8 +2847,8 @@ create_part() {
                 set 1 boot on
             update_part
 
-            mkfs.ext4 -F -L os /dev/$xda*1                   #1 os
-            mkfs.ext4 -F -L installer $ext4_opts /dev/$xda*2 #2 installer
+            mkfs.ext4 -F -L os "/dev/$(xda 1)"                   #1 os
+            mkfs.ext4 -F -L installer $ext4_opts "/dev/$(xda 2)" #2 installer
         fi
         update_part
     fi
@@ -3027,24 +3139,23 @@ modify_windows() {
     done
 
     # 5 frp
-    if [ -s /configs/frpc.toml ]; then
-        # 好像 win7 无法运行 frpc，暂时不管
-        windows_arch=$(get_windows_arch_from_windows_drive "$os_dir" | to_lower)
-        if [ "$windows_arch" = amd64 ] || [ "$windows_arch" = arm64 ]; then
-            mkdir -p "$os_dir/frpc/"
-            url=$(get_frpc_url windows "$nt_ver")
-            download "$url" $os_dir/frpc/frpc.zip
-            # -j 去除文件夹
-            # -C 筛选文件时不区分大小写，但 busybox zip 不支持
-            unzip -o -j "$os_dir/frpc/frpc.zip" '*/frpc.exe' -d "$os_dir/frpc/"
-            rm -f "$os_dir/frpc/frpc.zip"
-            cp -f /configs/frpc.toml "$os_dir/frpc/frpc.toml"
-            download "$confhome/windows-frpc.xml" "$os_dir/frpc/frpc.xml"
-            download "$confhome/windows-frpc.bat" "$os_dir/frpc/frpc.bat"
-            bats="$bats frpc\frpc.bat"
+    if ls /configs/frpc.* >/dev/null 2>&1; then
+        if [ "$(get_windows_arch_from_windows_drive "$os_dir" | to_lower)" = x86 ]; then
+            os_bit=32
         else
-            warn "$windows_arch Not Support frpc"
+            os_bit=64
         fi
+        mkdir -p "$os_dir/frpc/"
+        url=$(get_frpc_url windows "$nt_ver" "$os_bit")
+        download "$url" $os_dir/frpc/frpc.zip
+        # -j 去除文件夹
+        # -C 筛选文件时不区分大小写，但 busybox zip 不支持
+        unzip -o -j "$os_dir/frpc/frpc.zip" '*/frpc.exe' -d "$os_dir/frpc/"
+        rm -f "$os_dir/frpc/frpc.zip"
+        cp -f /configs/frpc.* "$os_dir/frpc/"
+        download "$confhome/windows-frpc.xml" "$os_dir/frpc/frpc.xml"
+        download "$confhome/windows-frpc.bat" "$os_dir/frpc/frpc.bat"
+        bats="$bats frpc\frpc.bat"
     fi
 
     if $use_gpo; then
@@ -3459,8 +3570,8 @@ EOF
             wget https://deb.freexian.com/extended-lts/archive-key.gpg \
                 -O $os_dir/etc/apt/trusted.gpg.d/freexian-archive-extended-lts.gpg
 
-            codename=$(grep '^VERSION_CODENAME=' $os_dir/etc/os-release | cut -d= -f2)
-            # shellcheck disable=SC2154
+            # shellcheck disable=SC1091
+            codename=$({ . "$os_dir/etc/os-release" && echo "$VERSION_CODENAME"; })
             if [ -f $os_dir/etc/apt/sources.list.d/debian.sources ]; then
                 cat <<EOF >$os_dir/etc/apt/sources.list.d/debian.sources
 Types: deb
@@ -3793,29 +3904,61 @@ EOF
     rm -f $os_dir/swapfile
 }
 
+setup_nocloud() {
+    os_dir=$1
+    info "Setup NoCloud"
+
+    # 1. 配置 NoCloud-only datasource
+    mkdir -p "$os_dir/etc/cloud/cloud.cfg.d"
+    cat >"$os_dir/etc/cloud/cloud.cfg.d/99-datasource.cfg" <<'EOF'
+datasource_list: [ NoCloud, None ]
+datasource:
+  NoCloud:
+    seedfrom: /var/lib/cloud/seed/nocloud/
+    fs_label: null
+EOF
+
+    # 2. 复制 seed 文件（已在 host 上准备好，打包在 initrd 中）
+    mkdir -p "$os_dir/var/lib/cloud/seed/nocloud"
+    cp /configs/cloud-data/* "$os_dir/var/lib/cloud/seed/nocloud/"
+
+    # 3. 确保 cloud-init 没有被禁用
+    rm -f "$os_dir/etc/cloud/cloud-init.disabled"
+
+    # 4. 清除 cloud-init 旧状态，确保首次启动重新执行
+    rm -rf "$os_dir/var/lib/cloud/instance"
+    rm -rf "$os_dir/var/lib/cloud/instances"
+}
+
 modify_os_on_disk() {
     only_process=$1
     info "Modify disk if is $only_process"
 
     update_part
 
-    # dd linux 的时候不用修改硬盘内容
-    if [ "$distro" = "dd" ] && ! lsblk -f /dev/$xda | grep ntfs; then
+    # dd linux 的时候不用修改硬盘内容（nocloud 模式除外）
+    if [ "$distro" = "dd" ] && [ "$only_process" != "nocloud" ] && ! lsblk -f /dev/$xda | grep ntfs; then
         return
     fi
 
     mkdir -p /os
     # 按分区容量大到小，依次寻找系统分区
-    for part in $(lsblk /dev/$xda*[0-9] --sort SIZE -no NAME | tac); do
+    # lsblk /dev/mmcblk0* 会列出 mmcblk0boot0 mmcblk0boot1
+    # lsblk /dev/mmcblk0  不会列出 mmcblk0boot0 mmcblk0boot1
+    for part in $(lsblk /dev/$xda --filter 'TYPE == "part"' --sort SIZE -no NAME | tac); do
         # btrfs挂载的是默认子卷，如果没有默认子卷，挂载的是根目录
         # fedora 云镜像没有默认子卷，且系统在root子卷中
         if mount -o ro /dev/$part /os; then
-            if [ "$only_process" = linux ]; then
+            if [ "$only_process" = linux ] || [ "$only_process" = nocloud ]; then
                 if etc_dir=$({ ls -d /os/etc/ || ls -d /os/*/etc/; } 2>/dev/null); then
                     os_dir=$(dirname $etc_dir)
                     # 重新挂载为读写
                     mount -o remount,rw /os
-                    modify_linux $os_dir
+                    if [ "$only_process" = nocloud ]; then
+                        setup_nocloud $os_dir
+                    else
+                        modify_linux $os_dir
+                    fi
                     return
                 fi
             elif [ "$only_process" = windows ]; then
@@ -4332,7 +4475,7 @@ install_fnos() {
 
     # 挂载 /os
     mkdir -p /os
-    mount /dev/$xda*2 /os
+    mount "/dev/$(xda 2)" /os
 
     # 下载并挂载 iso
     mkdir -p /os/installer /iso
@@ -4373,7 +4516,7 @@ install_fnos() {
     # 挂载 /os/boot/efi
     if is_efi; then
         mkdir -p /os/boot/efi
-        mount -o "$(echo "$fstab_line_efi" | awk '{print $4}')" /dev/$xda*1 /os/boot/efi
+        mount -o "$(echo "$fstab_line_efi" | awk '{print $4}')" "/dev/$(xda 1)" /os/boot/efi
     fi
 
     # 复制系统
@@ -4384,6 +4527,36 @@ install_fnos() {
 
     # 删除 installer (trimfs.tgz)
     rm -rf /os/installer
+
+    # 缩小分区
+    if $NEED_SHRINK_FNOS_OS_PART; then
+        info "Shrink fnos os partition"
+
+        # 取消挂载
+        if is_efi; then
+            umount /os/boot/efi
+        fi
+        umount /os
+
+        # 101M 是 efi + bios_grub 分区，即使 bios 引导飞牛官方安装器也会生成一个 100M 预留分区
+        # 99M 是预留的文件系统和分区表的差值
+        # 一共 200M
+        apk add e2fsprogs-extra parted
+        e2fsck -p -f "/dev/$(xda 2)"
+        resize2fs "/dev/$(xda 2)" "$((FNOS_OS_PART_END_M - 200))M"
+        update_part
+        printf "yes" | parted /dev/$xda resizepart 2 "$((FNOS_OS_PART_END_M))MiB" ---pretend-input-tty
+        update_part
+        resize2fs "/dev/$(xda 2)"
+        update_part
+        apk del e2fsprogs-extra parted
+
+        # 重新挂载
+        mount "/dev/$(xda 2)" /os
+        if is_efi; then
+            mount -o "$(echo "$fstab_line_efi" | awk '{print $4}')" "/dev/$(xda 1)" /os/boot/efi
+        fi
+    fi
 
     # 挂载 proc sys dev
     mount_pseudo_fs /os
@@ -4404,7 +4577,7 @@ install_fnos() {
     # fstab
     {
         # /
-        uuid=$(lsblk /dev/$xda*2 -no UUID)
+        uuid=$(lsblk "/dev/$(xda 2)" -no UUID)
         echo "$fstab_line_os" | sed "s/%s/$uuid/"
 
         # swapfile
@@ -4413,7 +4586,7 @@ install_fnos() {
 
         # /boot/efi
         if is_efi; then
-            uuid=$(lsblk /dev/$xda*1 -no UUID)
+            uuid=$(lsblk "/dev/$(xda 1)" -no UUID)
             echo "$fstab_line_efi" | sed "s/%s/$uuid/"
         fi
     } >$os_dir/etc/fstab
@@ -4539,7 +4712,7 @@ install_qcow_by_copy() {
         if is_efi; then
             # centos/oracle 要创建efi条目
             if ! grep /boot/efi /os/etc/fstab; then
-                efi_part_uuid=$(lsblk /dev/$xda*1 -no UUID)
+                efi_part_uuid=$(lsblk "/dev/$(xda 1)" -no UUID)
                 echo "UUID=$efi_part_uuid /boot/efi vfat $efi_mount_opts 0 0" >>/os/etc/fstab
             fi
         else
@@ -4874,7 +5047,7 @@ EOF
         # 因为 24.04 fsuuid 对应 boot 分区
         efi_grub_cfg=$os_dir/boot/efi/EFI/ubuntu/grub.cfg
         if is_efi; then
-            os_uuid=$(lsblk -rno UUID /dev/$xda*2)
+            os_uuid=$(lsblk -rno UUID "/dev/$(xda 2)")
             sed -Ei "s|[0-9a-f-]{36}|$os_uuid|i" $efi_grub_cfg
 
             # 24.04 移除 boot 分区后，需要添加 /boot 路径
@@ -4888,7 +5061,7 @@ EOF
         if [ -e $force_partuuid_cfg ]; then
             if is_virt; then
                 # 更改写死的 partuuid
-                os_part_uuid=$(lsblk -rno PARTUUID /dev/$xda*2)
+                os_part_uuid=$(lsblk -rno PARTUUID "/dev/$(xda 2)")
                 sed -i "s/^GRUB_FORCE_PARTUUID=.*/GRUB_FORCE_PARTUUID=$os_part_uuid/" $force_partuuid_cfg
             else
                 # 独服不应该使用 initrdless boot
@@ -5039,8 +5212,8 @@ EOF
     mount_nouuid /dev/$os_part /nbd/
     mount_pseudo_fs /nbd/
     case "$os_part_fstype" in
-    ext4) chroot /nbd mkfs.ext4 -F -L "$os_part_label" -U "$os_part_uuid" /dev/$xda*2 ;;
-    xfs) chroot /nbd mkfs.xfs -f -L "$os_part_label" -m uuid=$os_part_uuid /dev/$xda*2 ;;
+    ext4) chroot /nbd mkfs.ext4 -F -L "$os_part_label" -U "$os_part_uuid" "/dev/$(xda 2)" ;;
+    xfs) chroot /nbd mkfs.xfs -f -L "$os_part_label" -m uuid=$os_part_uuid "/dev/$(xda 2)" ;;
     esac
     umount -R /nbd/
 
@@ -5048,7 +5221,7 @@ EOF
 
     # 创建并挂载 /os
     mkdir -p /os
-    mount -o noatime /dev/$xda*2 /os/
+    mount -o noatime "/dev/$(xda 2)" /os/
 
     # 如果是 efi 则创建 /os/boot/efi
     # 如果镜像有 efi 分区也创建 /os/boot/efi，用于复制 efi 分区的文件
@@ -5059,7 +5232,7 @@ EOF
         # 预先挂载 /os/boot/efi 因为可能 boot 和 efi 在同一个分区（openeuler 24.03 arm）
         # 复制 boot 时可以会复制 efi 的文件
         if is_efi; then
-            mount -o $efi_mount_opts /dev/$xda*1 /os/boot/efi/
+            mount -o $efi_mount_opts "/dev/$(xda 1)" /os/boot/efi/
         fi
     fi
 
@@ -5110,7 +5283,7 @@ EOF
     if is_efi && [ -n "$efi_part_uuid" ] && ! [ "$efi_part" = "$os_part" ]; then
         info "Copy efi partition uuid"
         apk add mtools
-        mlabel -N "$(echo $efi_part_uuid | sed 's/-//')" -i /dev/$xda*1 ::$efi_part_label
+        mlabel -N "$(echo $efi_part_uuid | sed 's/-//')" -i "/dev/$(xda 1)" ::$efi_part_label
         apk del mtools
         update_part
     fi
@@ -5124,9 +5297,9 @@ EOF
 
     # 重新挂载 /os /boot/efi
     info "Re-mount disk"
-    mount -o noatime /dev/$xda*2 /os/
+    mount -o noatime "/dev/$(xda 2)" /os/
     if is_efi; then
-        mount -o $efi_mount_opts /dev/$xda*1 /os/boot/efi/
+        mount -o $efi_mount_opts "/dev/$(xda 1)" /os/boot/efi/
     fi
 
     # 创建 swap
@@ -5346,22 +5519,22 @@ resize_after_install_cloud_image() {
         ext4)
             # debian ci
             apk add e2fsprogs-extra
-            e2fsck -p -f /dev/$xda*$last_part_num
-            resize2fs /dev/$xda*$last_part_num
+            e2fsck -p -f "/dev/$(xda $last_part_num)"
+            resize2fs "/dev/$(xda $last_part_num)"
             apk del e2fsprogs-extra
             ;;
         xfs)
             # opensuse ci
             apk add xfsprogs-extra
-            mount /dev/$xda*$last_part_num /os
-            xfs_growfs /dev/$xda*$last_part_num
+            mount "/dev/$(xda $last_part_num)" /os
+            xfs_growfs "/dev/$(xda $last_part_num)"
             umount /os
             apk del xfsprogs-extra
             ;;
         btrfs)
             # fedora ci
             apk add btrfs-progs
-            mount /dev/$xda*$last_part_num /os
+            mount "/dev/$(xda $last_part_num)" /os
             btrfs filesystem resize max /os
             umount /os
             apk del btrfs-progs
@@ -5369,8 +5542,8 @@ resize_after_install_cloud_image() {
         ntfs)
             # windows dd
             apk add ntfs-3g-progs
-            echo y | ntfsresize /dev/$xda*$last_part_num
-            ntfsfix -d /dev/$xda*$last_part_num
+            echo y | ntfsresize "/dev/$(xda $last_part_num)"
+            ntfsfix -d "/dev/$(xda $last_part_num)"
             apk del ntfs-3g-progs
             ;;
         esac
@@ -5391,12 +5564,12 @@ mount_part_basic_layout() {
 
     # 挂载系统分区
     mkdir -p $os_dir
-    mount -t ext4 /dev/${xda}*${os_part_num} $os_dir
+    mount -t ext4 "/dev/$(xda $os_part_num)" $os_dir
 
     # 挂载 efi 分区
     if is_efi; then
         mkdir -p $efi_dir
-        mount -t vfat -o umask=077 /dev/${xda}*1 $efi_dir
+        mount -t vfat -o umask=077 "/dev/$(xda 1)" $efi_dir
     fi
 }
 
@@ -5617,8 +5790,8 @@ get_windows_type_from_windows_drive() {
     apk add hivex
     software_hive=$(find_file_ignore_case $os_dir/Windows/System32/config/SOFTWARE)
     system_hive=$(find_file_ignore_case $os_dir/Windows/System32/config/SYSTEM)
-    installation_type=$(hivexget $software_hive '\Microsoft\Windows NT\CurrentVersion' InstallationType || true)
-    product_type=$(hivexget $system_hive '\ControlSet001\Control\ProductOptions' ProductType || true)
+    installation_type=$(hivexget $software_hive '\Microsoft\Windows NT\CurrentVersion' InstallationType 2>/dev/null || true)
+    product_type=$(hivexget $system_hive '\ControlSet001\Control\ProductOptions' ProductType 2>/dev/null || true)
     apk del hivex
 
     # 根据 win11 multi-session 的情况
@@ -5682,12 +5855,24 @@ install_windows() {
 
     # 一般镜像是 install.wim
     # en_server_install_disc_windows_home_server_2011_x64_dvd_658487.iso 是 Install.wim
+    # en_windows_vista_sp2_with_update_6003.23713_aio_7in1_x64_v26.01.13_by_adguard.iso 是 swm
     source_install_wim=$(
         cd /iso
-        { find_file_ignore_case sources/install.wim ||
-            find_file_ignore_case sources/install.esd; } 2>/dev/null ||
-            error_and_exit "can't find install.wim or install.esd"
+        {
+            find_file_ignore_case sources/install.wim ||
+                find_file_ignore_case sources/install.esd ||
+                find_file_ignore_case sources/install.swm
+        } 2>/dev/null || error_and_exit "can't find install.wim, install.esd or install.swm"
     )
+
+    is_swm=false
+    if [[ $(echo "$source_install_wim" | to_lower) = '*.swm' ]]; then
+        is_swm=true
+        swm_ref=$(
+            IFS=. read -r name ext < <(basename "$source_install_wim")
+            echo "$name*.$ext"
+        )
+    fi
 
     # 防止用了不兼容架构的 iso
     boot_index=$(get_wim_prop "/iso/$sources_boot_wim" 'Boot Index')
@@ -5724,7 +5909,7 @@ install_windows() {
         while true; do
             # 匹配成功
             # 改成正确的大小写
-            if matched_image_name=$(echo "$all_image_names" | grep -ix "$image_name"); then
+            if matched_image_name=$(printf '%s\n' "$all_image_names" | grep -Fix "$image_name"); then
                 image_name=$matched_image_name
                 image_index=$(wiminfo "$iso_install_wim" "$image_name" | grep 'Index:' | awk '{print $NF}')
                 break
@@ -5794,27 +5979,15 @@ install_windows() {
     # 2. 是否自带 nvme 驱动
     # 3. 是否支持 sha256
     # 4. Installation Type
-    wimmount "$iso_install_wim" "$image_index" /wim/
+    # shellcheck disable=SC2046
+    wimmount "$iso_install_wim" "$image_index" /wim/ \
+        $($is_swm && echo --ref=$(dirname "$iso_install_wim")/$swm_ref)
+
+    # 获取版本号
     get_windows_version_from_windows_drive /wim
+
+    # 检测 client/server，并转换成标准版 windows 名称
     windows_type=$(get_windows_type_from_windows_drive /wim)
-    {
-        find_file_ignore_case /wim/Windows/System32/sacsess.exe && has_sac=true || has_sac=false
-        find_file_ignore_case /wim/Windows/INF/stornvme.inf && has_stornvme=true || has_stornvme=false
-    } >/dev/null 2>&1
-    wimunmount /wim/
-
-    # https://www.hummingheads.co.jp/press/info-certificates.html
-    # https://support.microsoft.com/kb/KB3033929
-    # https://support.microsoft.com/kb/KB4474419
-    # Windows Vista SP2 ldr_escrow   6.0.6003 + KB4474419
-    # Windows 7     SP1              6.1.7601 + KB3033929
-    support_sha256=false
-    if is_nt_ver_ge 6.2 ||
-        { [ "$nt_ver" = 6.1 ] && [ "$build_ver" -ge 7601 ] && [ "$rev_ver" -ge 18741 ]; } ||
-        { [ "$nt_ver" = 6.0 ] && [ "$build_ver" -ge 6003 ] && [ "$rev_ver" -ge 20555 ]; }; then
-        support_sha256=true
-    fi
-
     product_ver=$(
         case "$windows_type" in
         client) get_client_name_by_build_ver "$build_ver" ;;
@@ -5822,16 +5995,113 @@ install_windows() {
         esac
     )
 
+    # 检测 sac 和 nvme
+    {
+        find_file_ignore_case /wim/Windows/System32/sacsess.exe && has_sac=true || has_sac=false
+        find_file_ignore_case /wim/Windows/INF/stornvme.inf && has_stornvme=true || has_stornvme=false
+    } >/dev/null 2>&1
+
+    # 检测是否支持 sha256 签名的驱动
+    support_sha256=false
+    if is_nt_ver_ge 6.2; then
+        support_sha256=true
+    else
+        # 安装环境下 drvload.exe 不会验证签名，能安装 sha256 的驱动
+        # 但重启后提示 Windows cannot verify the digital signature for this file.
+
+        # winload.exe/efi 有这串字符
+        # Windows cannot verify the digital signature for this file.
+        # strings -e l winload.exe | grep -i signature
+        # strings -e l winload.efi | grep -i signature
+
+        # 硬盘控制器驱动是 boot-start 驱动，由 winload.exe/efi 验证签名
+        # 网卡驱动不是 boot-start 驱动，由 ci.dll 验证签名
+
+        # win7 sp1 iso 不支持 sha256 的驱动，但是
+        # ci.dll      能找到 8+64 个常量和 oid 0609608648016503040201 0102040365014886600906
+        # winload.exe 能找到 8+64 个常量和 oid 0609608648016503040201 0102040365014886600906
+        # winload.efi 能找到 8+64 个常量和 oid     608648016503040201
+
+        # 官网有提到 KB3033929 和 KB4039648, 应该分别是 2008r2 和 2008 最早支持 sha256 的补丁
+        # https://support.microsoft.com/kb/4472027#:~:text=KB3033929%20%E5%92%8C%20KB4039648
+        # https://support.drweb.cn/sha2
+        # https://support.kaspersky.com/common/compatibility/15761
+        # https://www.internetdownloadmanager.com/register/new_faq/sha256-support-for-outdated-versions-of-Windows.html
+        # https://www.catalog.update.microsoft.com/
+
+        # vista sp2 iso
+        # 用 KB4039648 和 KB4090450 做测试，独立安装时，注册表没有发现另一个 KB 的痕迹
+        # 后续很多补丁如果包含 winload.exe/efi，都是支持 sha256 的新版，因此不能通过检测 KB 编号来判断
+        # HKEY_LOCAL_MACHINE\Microsoft\Windows\CurrentVersion\Component Based Servicing\Package
+        # HKEY_LOCAL_MACHINE\Microsoft\Windows\CurrentVersion\Component Based Servicing\PackageDetect
+
+        # vista sp2 iso 独立安装以下补丁时
+        # 补丁          发布日期   BuildLabEx          ubr    winload.exe   winload.efi   ci.dll
+        # KB4039648 旧  2018/2/21  6002.18005(没改变)  没有   6002.24259    6002.24283    6002.24259
+        # KB4039648 新  2018/3/22  6002.18005(没改变)  没有   6002.24259    6002.24298    6002.24259
+        # KB4039648-v2  2018/6/12  6002.24381          没有   6002.24362    6002.24381    6002.24259
+        # KB4474419-v4  2019/10/8  6003.20555          没有   6003.20505    6003.20555    6003.20593
+
+        # win7 sp1 iso 独立安装以下补丁时
+        # KB3033929     2015/3/10  7601.18741          没有   18649/22854  18741/22948    18519/22730
+        # KB4474419-v3  2019/9/10  7601.24384          没有         24149        24384          24158
+
+        # 最早的 KB4039648 KB3033929 都支持 sha256
+        # winload.exe/efi 版本号 >= ci.dll
+        # 因此用 winload.exe/efi 的版本号来判断是否支持 sha256
+
+        apk add pev
+        local maj min build rev
+        winload=$(find_file_ignore_case "/wim/Windows/System32/winload.$(is_efi && echo efi || echo exe)")
+        IFS=. read -r maj min build rev \
+            < <(peres -v "$winload" | grep 'Product Version:' | awk '{print $NF}')
+        apk del pev
+
+        # vista/2008
+        # https://support.microsoft.com/kb/KB4039648
+        # https://catalog.update.microsoft.com/Search.aspx?q=KB4039648
+
+        # win7/2008r2 网页有列出文件版本号
+        # https://support.microsoft.com/kb/KB3033929
+        # https://catalog.update.microsoft.com/Search.aspx?q=KB3033929
+
+        # rev 1xxxx 是 GDR 分支
+        # rev 2xxxx 是 LDR 分支
+
+        # vista/2008 版本从 6002 到 6003, rev 减少 4000
+        # https://support.microsoft.com/topic/1335e4d4-c155-52eb-4a45-b85bd1909ca8
+
+        if is_efi; then
+            if { [ "$maj.$min" = 6.1 ] && [ "$build" -eq 7601 ] && [ "$rev" -ge 22948 ]; } ||
+                { [ "$maj.$min" = 6.1 ] && [ "$build" -eq 7601 ] && [ "$rev" -ge 18741 ] && [ "$rev" -lt 20000 ]; } ||
+                { [ "$maj.$min" = 6.0 ] && [ "$build" -eq 6003 ] && [ "$rev" -ge 20283 ]; } ||
+                { [ "$maj.$min" = 6.0 ] && [ "$build" -eq 6002 ] && [ "$rev" -ge 24283 ]; }; then
+                support_sha256=true
+            fi
+        else
+            if { [ "$maj.$min" = 6.1 ] && [ "$build" -eq 7601 ] && [ "$rev" -ge 22854 ]; } ||
+                { [ "$maj.$min" = 6.1 ] && [ "$build" -eq 7601 ] && [ "$rev" -ge 18649 ] && [ "$rev" -lt 20000 ]; } ||
+                { [ "$maj.$min" = 6.0 ] && [ "$build" -eq 6003 ] && [ "$rev" -ge 20259 ]; } ||
+                { [ "$maj.$min" = 6.0 ] && [ "$build" -eq 6002 ] && [ "$rev" -ge 24259 ]; }; then
+                support_sha256=true
+            fi
+        fi
+    fi
+
+    wimunmount /wim/
+
     info "Selected image info"
     echo "Image Name: $image_name"
     echo "Product Version: $product_ver"
     echo "Windows Type: $windows_type"
     echo "NT Version: $nt_ver"
     echo "Build Version: $build_ver"
+    echo "Revision Version: $rev_ver"
     echo "-------------------------"
     echo "Has SAC: $has_sac"
     echo "Has StorNVMe: $has_stornvme"
     echo "Support SHA256: $support_sha256"
+    echo "-------------------------"
     echo
 
     # 复制 boot.wim 到 /os，用于临时编辑
@@ -5850,13 +6120,14 @@ install_windows() {
         boot_dir=/os
     fi
 
-    # 复制启动相关的文件
-    # efi 额外复制efi目录
+    # 复制 iso 根目录 boot 开头的文件
     echo 'Copying boot files...'
-    cp -r "$(get_path_in_correct_case /iso/boot)"* $boot_dir
+    find /iso -maxdepth 1 -iname 'boot*' -exec cp -r {} "$boot_dir" \;
+
+    # efi 额外复制 iso 根目录 efi 文件夹
     if is_efi; then
         echo 'Copying efi files...'
-        cp -r "$(get_path_in_correct_case /iso/efi)" $boot_dir
+        find /iso -maxdepth 1 -type d -iname efi -exec cp -r {} "$boot_dir" \;
     fi
 
     # 复制iso全部文件(除了boot.wim)到installer分区
@@ -5867,6 +6138,7 @@ install_windows() {
             --exclude=/sources/boot.wim \
             --exclude=/sources/install.wim \
             --exclude=/sources/install.esd \
+            --exclude='/sources/install*.swm' \
             /iso/* /os/installer/
     else
         (
@@ -5875,16 +6147,27 @@ install_windows() {
                 -not -iname boot.wim \
                 -not -iname install.wim \
                 -not -iname install.esd \
+                -not -iname 'install*.swm' \
                 -exec cp -r --parents {} /os/installer/ \;
         )
     fi
 
-    # 优化 install.wim
-    # 优点: 可以节省 200M~600M 空间，用来创建虚拟内存
-    #       （意义不大，因为已经删除了 boot.wim 用来创建虚拟内存，vista 除外）
-    # 缺点: 如果 install.wim 只有一个镜像，则只能缩小 10M+
-    if false; then
+    # 如果是 swm，要先合并成 wim 才能编辑
+    if $is_swm; then
+        install_wim=$(echo "$install_wim" | sed 's/\.swm$/.wim/i')
+        # 防止不格盘二次运行时报错：文件已存在
+        rm -f "$install_wim"
+        wimexport --ref="$(dirname "$iso_install_wim")/$swm_ref" "$iso_install_wim" "$image_index" "$install_wim"
+        # 只导出了要安装的镜像，因此 image_index 变为 1
+        image_index=1
+    elif false; then
+        # 优化 install.wim
+        # 优点: 可以节省 200M~600M 空间，用来创建虚拟内存
+        #       （意义不大，因为已经删除了 boot.wim 用来创建虚拟内存，vista 除外）
+        # 缺点: 如果 install.wim 只有一个镜像，则只能缩小 10M+
         time wimexport --threads "$(get_build_threads 512)" "$iso_install_wim" "$image_index" "$install_wim"
+        # 只导出了要安装的镜像，因此 image_index 变为 1
+        image_index=1
         info "install.wim size"
         echo "Original:  $(get_filesize_mb "$iso_install_wim")"
         echo "Optimized: $(get_filesize_mb "$install_wim")"
@@ -6252,9 +6535,9 @@ EOF
 
         apk add msitools
 
-        # 8.4.3 的 xenbus 挑创建实例时的初始系统
-        # 初始系统为 windows 的实例支持 8.4.3
-        # 初始系统为 linux 的实例不支持 8.4.3
+        # 8.4.3+ 的 xenbus 驱动挑创建实例时的初始系统
+        # 初始系统为 windows 的实例支持 8.4.3+
+        # 初始系统为 linux 的实例不支持 8.4.3+
 
         # 初始系统为 linux + 安装 8.4.3
         # 如果用 msi 安装，则不会启用 xenbus，结果是能启动但无法上网
@@ -6269,11 +6552,16 @@ EOF
             6.1) $support_sha256 && echo 8.3.5 || echo 8.3.2 ;;
             6.2 | 6.3)
                 case "$hypervisor_vendor" in
-                Microsoft) echo 8.4.3 ;; # 实例初始系统为 Windows，能使用 8.4.3
-                Xen) echo 8.3.5 ;;       # 实例初始系统为 Linux，不能使用 8.4.3
+                Xen) echo 8.3.5 ;;       # 实例初始系统为 Linux
+                Microsoft) echo 8.4.3 ;; # 实例初始系统为 Windows
                 esac
                 ;;
-            *) echo Latest ;;
+            *)
+                case "$hypervisor_vendor" in
+                Xen) echo 8.3.5 ;;        # 实例初始系统为 Linux
+                Microsoft) echo Latest ;; # 实例初始系统为 Windows
+                esac
+                ;;
             esac
         )
 
@@ -6674,36 +6962,48 @@ EOF
 
     add_driver_vmd() {
         # RST v20 不支持 11代 PCI\VEN_8086&DEV_9A0B
-        is_gen11=false
+        support_v19=false
+        support_v20=false
         for d in /sys/bus/pci/devices/*; do
             vendor=$(cat "$d/vendor" 2>/dev/null)
             device=$(cat "$d/device" 2>/dev/null)
-            if [ "$vendor" = "0x8086" ] && [ "$device" = "0x9a0b" ]; then
-                is_gen11=true
-                break
+            if [ "$vendor" = "0x8086" ]; then
+                case "$device" in
+                "0x9a0b") support_v19=true && support_v20=false && break ;;
+                "0x467f") support_v19=true && support_v20=true && break ;;
+                "0xa77f") support_v19=true && support_v20=true && break ;;
+                "0x7d0b") support_v19=false && support_v20=true && break ;;
+                "0xad0b") support_v19=false && support_v20=true && break ;;
+                esac
             fi
         done
 
-        if ! $is_gen11 && [ "$build_ver" -ge 19041 ]; then
-            # RST v20
-            local page=https://www.intel.com/content/www/us/en/download/849936.html
-        elif [ "$build_ver" -ge 15063 ]; then
-            # RST v19
-            local page=https://www.intel.com/content/www/us/en/download/849933.html
-        else
-            error_and_exit "can't find suitable vmd driver"
+        local page=
+        if $support_v20 && [ "$build_ver" -ge 19041 ]; then
+            page=https://www.intel.com/content/www/us/en/download/849936.html
+        elif $support_v19 && [ "$build_ver" -ge 15063 ]; then
+            page=https://www.intel.com/content/www/us/en/download/849933.html
         fi
-        local url
-        url=$(wget -U curl/7.54.1 "$page" -O- |
-            grep -Eio -m1 "\"https://.+/SetupRST\.exe\"" | tr -d '"' | grep .)
 
-        # 注意 intel 禁止了 aria2 下载
-        download $url $drv/SetupRST.exe
-        apk add 7zip
-        7z x $drv/SetupRST.exe -o$drv/SetupRST -i!.text
-        7z x $drv/SetupRST/.text -o$drv/vmd
-        apk del 7zip
-        cp_drivers $drv/vmd
+        if [ -n "$page" ]; then
+            # intel 禁止了 wget 下载网页
+            local url
+            url=$(wget -U curl/7.54.1 "$page" -O- |
+                grep -Eio -m1 "\"https://.+/SetupRST\.exe\"" | tr -d '"' | grep .)
+
+            # 注意 intel 禁止了 aria2 下载
+            download $url $drv/SetupRST.exe
+            apk add 7zip
+            7z x $drv/SetupRST.exe -o$drv/SetupRST -i!.text
+            7z x $drv/SetupRST/.text -o$drv/vmd
+            apk del 7zip
+            cp_drivers $drv/vmd
+        else
+            # 如果开启了 vmd 但硬盘不在 vmd 上，linux 会自动加载 vmd 模块?
+            # 还要判断主硬盘是否在 vmd 上，如果不在，即使没有 vmd 驱动也可继续安装
+            # 因此目前先不中止脚本
+            : error_and_exit "can't find suitable vmd driver"
+        fi
     }
 
     # 脚本自动检测驱动可能有问题
@@ -6900,6 +7200,8 @@ EOF
         images=all
     fi
     mkdir -p "$(get_path_in_correct_case "$(dirname $boot_dir/$sources_boot_wim)")"
+    # 防止不格盘二次运行时报错：文件已存在
+    rm -f $boot_dir/$sources_boot_wim
     wimexport --boot /os/boot.wim "$images" $boot_dir/$sources_boot_wim
     info "boot.wim size"
     echo "Original:      $(get_filesize_mb /iso/$sources_boot_wim)"
@@ -6946,12 +7248,12 @@ EOF
         # 或者用 ms-sys
         apk add grub-bios
         # efi 下，强制安装 mbr 引导，需要添加 --target i386-pc
-        grub-install --target i386-pc --boot-directory=/os/boot /dev/$xda
-        cat <<EOF >/os/boot/grub/grub.cfg
+        grub-install --target i386-pc --boot-directory="$(get_path_in_correct_case /os/boot)" /dev/$xda
+        cat <<EOF >"$(get_path_in_correct_case /os/boot/grub/grub.cfg)"
             set timeout=5
             menuentry "reinstall" {
                 search --no-floppy --label --set=root os
-                ntldr /bootmgr
+                ntldr /$(cd /os && get_path_in_correct_case bootmgr)
             }
 EOF
     fi
@@ -7229,7 +7531,11 @@ trans() {
                 # windows 扩容在 windows 下完成
                 resize_after_install_cloud_image
             fi
-            modify_os_on_disk windows
+            if [ -d /configs/cloud-data ]; then
+                modify_os_on_disk nocloud
+            else
+                modify_os_on_disk windows
+            fi
             ;;
         qemu) # dd qemu 不可能到这里，因为上面已处理
             ;;
@@ -7343,12 +7649,12 @@ fi
 
 # 设置 frpc
 # 并防止重复运行
-if [ -s /configs/frpc.toml ] && ! pidof frpc >/dev/null; then
+if ls /configs/frpc.* >/dev/null 2>&1 && ! pidof frpc >/dev/null; then
     info 'run frpc'
     add_community_repo
     apk add frp
     while true; do
-        frpc -c /configs/frpc.toml || true
+        frpc -c /configs/frpc.* || true
         sleep 5
     done &
 fi
