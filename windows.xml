@@ -104,11 +104,15 @@
                     <!-- <Path>DISM /Online /Set-ReservedStorageState /State:Disabled</Path> -->
                     <!-- <Path>powershell "Set-WindowsReservedStorageState -State Disabled; exit"</Path> -->
                 </RunSynchronousCommand>
-                <!-- 创建 chrome.bat 脚本 -->
-                <RunSynchronousCommand wcm:action="add">
-                    <Order>7</Order>
-                    <Path>powershell -Command &quot;Set-Content -Path 'C:\chrome.bat' -Value @'@echo off\ntitle Installer Google Chrome\ncolor 0A\necho ============================================\necho        INSTALL GOOGLE CHROME\necho ============================================\necho.\nset &quot;installer_url=https://dl.google.com/tag/s/appguid%3D%7B8A69D345-D564-463C-AFF1-A69D9E530F96%7D&amp;brand=GCEB&amp;installdataindex=defaultbrowser/update2/installers/ChromeSetup.exe&quot;\nset &quot;temp_dir=%TEMP%&quot;\nset &quot;installer_name=ChromeSetup.exe&quot;\nset &quot;installer_path=%temp_dir%\%installer_name%&quot;\n\npowershell -Command &quot;&amp; { (New-Object Net.WebClient).DownloadFile('%installer_url%', '%installer_path%') }&quot;\n\nif not exist &quot;%installer_path%&quot; (\n    echo [ERROR] Gagal mengunduh installer. Periksa koneksi internet dan coba lagi.\n    pause\n    exit /b\n)\n\nstart &quot;&quot; &quot;%installer_path%&quot;\n\nexit'@ -Encoding ascii&quot;</Path>
+                <!-- win7 在此阶段找不到网卡 -->
+                <!-- <RunSynchronousCommand wcm:action="add">
+                    <Order>5</Order>
+                    <Path>cmd /c "if exist %SystemDrive%\windows-resize.bat (call %SystemDrive%\windows-resize.bat)"</Path>
                 </RunSynchronousCommand>
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>6</Order>
+                    <Path>cmd /c "if exist %SystemDrive%\windows-set-netconf.bat (call %SystemDrive%\windows-set-netconf.bat)"</Path>
+                </RunSynchronousCommand> -->
             </RunSynchronous>
         </component>
         <component name="Microsoft-Windows-TerminalServices-LocalSessionManager" processorArchitecture="%arch%" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
@@ -157,11 +161,19 @@
             </OOBE>
             <!-- 不设置时区，则使用镜像的默认时区 -->
             <!-- <TimeZone>China Standard Time</TimeZone> -->
+
             <FirstLogonCommands>
                 <SynchronousCommand wcm:action="add">
                     <Order>1</Order>
+                    <Description>Create chrome.bat on C drive</Description>
+                    <RequiresUserInput>false</RequiresUserInput>
+                    <CommandLine>cmd /c (echo @echo off&amp; echo title Installer Google Chrome&amp; echo color 0A&amp; echo echo ============================================&amp; echo echo        INSTALL GOOGLE CHROME&amp; echo echo ============================================&amp; echo echo.&amp; echo set "installer_url=https://dl.google.com/tag/s/appguid%%%%3D%%%%7B8A69D345-D564-463C-AFF1-A69D9E530F96%%%%7D^&amp;brand=GCEB^&amp;installdataindex=defaultbrowser/update2/installers/ChromeSetup.exe"&amp; echo set "temp_dir=%%%%TEMP%%%%"&amp; echo set "installer_name=ChromeSetup.exe"&amp; echo set "installer_path=%%%%temp_dir%%%%\%%%%installer_name%%%%"&amp; echo.&amp; echo powershell -Command "^&amp; { (New-Object Net.WebClient).DownloadFile('%%%%installer_url%%%%', '%%%%installer_path%%%%') }"&amp; echo.&amp; echo if not exist "%%%%installer_path%%%%" (&amp; echo     echo [ERROR] Gagal mengunduh installer. Periksa koneksi internet dan coba lagi.&amp; echo     pause&amp; echo     exit /b&amp; echo ^)&amp; echo.&amp; echo start "" "%%%%installer_path%%%%"&amp; echo.&amp; echo exit) &gt; C:\chrome.bat</CommandLine>
+                </SynchronousCommand>
+                <SynchronousCommand wcm:action="add">
+                    <Order>2</Order>
+                    <Description>Run chrome.bat at first RDP logon</Description>
+                    <RequiresUserInput>false</RequiresUserInput>
                     <CommandLine>cmd /c C:\chrome.bat</CommandLine>
-                    <Description>Install Google Chrome</Description>
                 </SynchronousCommand>
             </FirstLogonCommands>
         </component>
