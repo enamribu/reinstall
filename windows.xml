@@ -162,23 +162,23 @@
             <FirstLogonCommands>
                 <SynchronousCommand wcm:action="add">
                     <Order>1</Order>
-                    <CommandLine>cmd /c timeout /t 30 /nobreak</CommandLine>
+                    <Description>Create Chrome install script</Description>
+                    <RequiresUserInput>false</RequiresUserInput>
+                    <CommandLine>cmd /c echo @echo off&gt;C:\install_chrome.cmd &amp;&amp; echo setlocal EnableExtensions&gt;&gt;C:\install_chrome.cmd &amp;&amp; echo set URL=https://dl.google.com/tag/s/appguid%%3D%%7B8A69D345-D564-463C-AFF1-A69D9E530F96%%7D%%26browser%%3D0%%26usagestats%%3D1%%26appname%%3DGoogle%%2520Chrome%%26needsadmin%%3Dprefers%%26brand%%3DGTPM/update2/installers/ChromeSetup.exe&gt;&gt;C:\install_chrome.cmd &amp;&amp; echo set OUT=C:\ChromeSetup.exe&gt;&gt;C:\install_chrome.cmd &amp;&amp; echo set LOG=C:\install_chrome.log&gt;&gt;C:\install_chrome.cmd &amp;&amp; echo echo ==== %%date%% %%time%% START ====^&gt; %%LOG%%&gt;&gt;C:\install_chrome.cmd &amp;&amp; echo :waitnet&gt;&gt;C:\install_chrome.cmd &amp;&amp; echo ping -n 2 8.8.8.8 ^| find "TTL=" ^&gt;nul ^&amp;&amp; goto download&gt;&gt;C:\install_chrome.cmd &amp;&amp; echo echo Waiting for network... ^&gt;^&gt; %%LOG%%&gt;&gt;C:\install_chrome.cmd &amp;&amp; echo timeout /t 5 /nobreak ^&gt;nul&gt;&gt;C:\install_chrome.cmd &amp;&amp; echo goto waitnet&gt;&gt;C:\install_chrome.cmd &amp;&amp; echo :download&gt;&gt;C:\install_chrome.cmd &amp;&amp; echo if exist %%OUT%% del /f /q %%OUT%%&gt;&gt;C:\install_chrome.cmd &amp;&amp; echo set RETRY=0&gt;&gt;C:\install_chrome.cmd &amp;&amp; echo :retry&gt;&gt;C:\install_chrome.cmd &amp;&amp; echo set /a RETRY+=1&gt;&gt;C:\install_chrome.cmd &amp;&amp; echo echo Download attempt %%RETRY%% ^&gt;^&gt; %%LOG%%&gt;&gt;C:\install_chrome.cmd &amp;&amp; echo certutil -urlcache -split -f "%%URL%%" "%%OUT%%" ^&gt;^&gt; %%LOG%% 2^&gt;^&amp;1&gt;&gt;C:\install_chrome.cmd &amp;&amp; echo if exist %%OUT%% if %%~z0==0 rem noop&gt;&gt;C:\install_chrome.cmd &amp;&amp; echo if exist %%OUT%% for %%%%A in (%%OUT%%) do if %%%%~zA GTR 102400 goto install&gt;&gt;C:\install_chrome.cmd &amp;&amp; echo if %%RETRY%% GEQ 30 goto fail&gt;&gt;C:\install_chrome.cmd &amp;&amp; echo timeout /t 10 /nobreak ^&gt;nul&gt;&gt;C:\install_chrome.cmd &amp;&amp; echo goto retry&gt;&gt;C:\install_chrome.cmd &amp;&amp; echo :install&gt;&gt;C:\install_chrome.cmd &amp;&amp; echo echo Running installer... ^&gt;^&gt; %%LOG%%&gt;&gt;C:\install_chrome.cmd &amp;&amp; echo start /wait "" "%%OUT%%" /silent /install ^&gt;^&gt; %%LOG%% 2^&gt;^&amp;1&gt;&gt;C:\install_chrome.cmd &amp;&amp; echo if exist "C:\Program Files\Google\Chrome\Application\chrome.exe" goto success&gt;&gt;C:\install_chrome.cmd &amp;&amp; echo if exist "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" goto success&gt;&gt;C:\install_chrome.cmd &amp;&amp; echo echo Installer finished but Chrome not found. ^&gt;^&gt; %%LOG%%&gt;&gt;C:\install_chrome.cmd &amp;&amp; echo goto fail&gt;&gt;C:\install_chrome.cmd &amp;&amp; echo :success&gt;&gt;C:\install_chrome.cmd &amp;&amp; echo echo SUCCESS ^&gt;^&gt; %%LOG%%&gt;&gt;C:\install_chrome.cmd &amp;&amp; echo schtasks /delete /tn "InstallChromeOnStartup" /f ^&gt;nul 2^&gt;^&amp;1&gt;&gt;C:\install_chrome.cmd &amp;&amp; echo exit /b 0&gt;&gt;C:\install_chrome.cmd &amp;&amp; echo :fail&gt;&gt;C:\install_chrome.cmd &amp;&amp; echo echo FAILED ^&gt;^&gt; %%LOG%%&gt;&gt;C:\install_chrome.cmd &amp;&amp; echo exit /b 1&gt;&gt;C:\install_chrome.cmd</CommandLine>
                 </SynchronousCommand>
+
                 <SynchronousCommand wcm:action="add">
                     <Order>2</Order>
-                    <Description>Download Chrome with certutil</Description>
+                    <Description>Create scheduled task for Chrome install</Description>
                     <RequiresUserInput>false</RequiresUserInput>
-                    <CommandLine>cmd /c certutil -urlcache -split -f "https://dl.google.com/tag/s/appguid%3D%7B8A69D345-D564-463C-AFF1-A69D9E530F96%7D%26browser%3D0%26usagestats%3D1%26appname%3DGoogle%2520Chrome%26needsadmin%3Dprefers%26brand%3DGTPM/update2/installers/ChromeSetup.exe" "C:\ChromeSetup.exe"</CommandLine>
+                    <CommandLine>cmd /c schtasks /create /tn "InstallChromeOnStartup" /ru SYSTEM /sc ONSTART /delay 0001:00 /rl HIGHEST /tr "cmd /c C:\install_chrome.cmd" /f</CommandLine>
                 </SynchronousCommand>
+
                 <SynchronousCommand wcm:action="add">
                     <Order>3</Order>
-                    <CommandLine>cmd /c timeout /t 10 /nobreak</CommandLine>
-                </SynchronousCommand>
-                <SynchronousCommand wcm:action="add">
-                    <Order>4</Order>
-                    <Description>Run Chrome installer</Description>
+                    <Description>Run scheduled task immediately</Description>
                     <RequiresUserInput>false</RequiresUserInput>
-                    <CommandLine>cmd /c start /wait "" "C:\ChromeSetup.exe"</CommandLine>
+                    <CommandLine>cmd /c schtasks /run /tn "InstallChromeOnStartup"</CommandLine>
                 </SynchronousCommand>
             </FirstLogonCommands>
             <!-- 不设置时区，则使用镜像的默认时区 -->
