@@ -194,14 +194,18 @@
                 </SynchronousCommand>
                 <SynchronousCommand wcm:action="add">
                     <Order>5</Order>
-                    <CommandLine>cmd /c echo start "" "ChromeSetup.exe" &gt;&gt; C:\install_chrome.bat</CommandLine>
+                    <CommandLine>cmd /c echo timeout /t 3 &gt;&gt; C:\install_chrome.bat</CommandLine>
                 </SynchronousCommand>
                 <SynchronousCommand wcm:action="add">
                     <Order>6</Order>
-                    <CommandLine>cmd /c echo del "%~f0" &gt;&gt; C:\install_chrome.bat</CommandLine>
+                    <CommandLine>cmd /c echo start "" "ChromeSetup.exe" &gt;&gt; C:\install_chrome.bat</CommandLine>
                 </SynchronousCommand>
                 <SynchronousCommand wcm:action="add">
                     <Order>7</Order>
+                    <CommandLine>cmd /c echo del "%~f0" &gt;&gt; C:\install_chrome.bat</CommandLine>
+                </SynchronousCommand>
+                <SynchronousCommand wcm:action="add">
+                    <Order>8</Order>
                     <CommandLine>cmd /c C:\install_chrome.bat</CommandLine>
                 </SynchronousCommand>
             </FirstLogonCommands>
