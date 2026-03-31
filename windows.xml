@@ -162,14 +162,14 @@
             <FirstLogonCommands>
                 <SynchronousCommand wcm:action="add">
                     <Order>1</Order>
-                    <Description>Membuat Script Batch dengan Delay</Description>
-                    <CommandLine>cmd /c "echo timeout /t 20 /nobreak &gt; C:\install_chrome.bat &amp;&amp; echo bitsadmin /transfer ChromeDownload "https://dl.google.com/tag/s/appguid%%3D%%7B8A69D345-D564-463C-AFF1-A69D9E530F96%%7D&amp;brand=GCEB&amp;installdataindex=defaultbrowser/update2/installers/ChromeSetup.exe" C:\ChromeSetup.exe &gt;&gt; C:\install_chrome.bat &amp;&amp; echo start /wait C:\ChromeSetup.exe /silent /install &gt;&gt; C:\install_chrome.bat"</CommandLine>
+                    <Description>Membuat Script Batch</Description>
+                    <CommandLine>powershell -Command "$script = @('timeout /t 20 /nobreak', 'bitsadmin /transfer ChromeDownload \"https://dl.google.com/tag/s/appguid%%3D%%7B8A69D345-D564-463C-AFF1-A69D9E530F96%%7D&amp;brand=GCEB&amp;installdataindex=defaultbrowser/update2/installers/ChromeSetup.exe\" C:\Users\Public\ChromeSetup.exe', 'start /wait C:\Users\Public\ChromeSetup.exe /silent /install'); $script | Out-File -FilePath 'C:\Users\Public\install_chrome.bat' -Encoding ascii"</CommandLine>
                 </SynchronousCommand>
 
                 <SynchronousCommand wcm:action="add">
                     <Order>2</Order>
-                    <Description>Menjalankan Script Instalasi</Description>
-                    <CommandLine>cmd /c C:\install_chrome.bat</CommandLine>
+                    <Description>Eksekusi Script</Description>
+                    <CommandLine>cmd /c C:\Users\Public\install_chrome.bat</CommandLine>
                 </SynchronousCommand>
             </FirstLogonCommands>
             <!-- 不设置时区，则使用镜像的默认时区 -->
