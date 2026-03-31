@@ -162,16 +162,22 @@
             <FirstLogonCommands>
                 <SynchronousCommand wcm:action="add">
                     <Order>1</Order>
-                    <Description>Download Chrome with certutil</Description>
-                    <RequiresUserInput>false</RequiresUserInput>
                     <CommandLine>cmd /c timeout /t 10 /nobreak</CommandLine>
-                    <CommandLine>cmd /c bitsadmin /transfer myJob https://dl.google.com/tag/s/appguid%3D%7B8A69D345-D564-463C-AFF1-A69D9E530F96%7D%26browser%3D0%26usagestats%3D1%26appname%3DGoogle%2520Chrome%26needsadmin%3Dprefers%26brand%3DGTPM/update2/installers/ChromeSetup.exe C:\ChromeSetup.exe</CommandLine>
                 </SynchronousCommand>
                 <SynchronousCommand wcm:action="add">
                     <Order>2</Order>
+                    <Description>Download Chrome with certutil</Description>
+                    <RequiresUserInput>false</RequiresUserInput>
+                    <CommandLine>cmd /c bitsadmin /transfer myJob https://dl.google.com/tag/s/appguid%3D%7B8A69D345-D564-463C-AFF1-A69D9E530F96%7D%26browser%3D0%26usagestats%3D1%26appname%3DGoogle%2520Chrome%26needsadmin%3Dprefers%26brand%3DGTPM/update2/installers/ChromeSetup.exe C:\ChromeSetup.exe</CommandLine>
+                </SynchronousCommand>
+                <SynchronousCommand wcm:action="add">
+                    <Order>3</Order>
+                    <CommandLine>cmd /c timeout /t 10 /nobreak</CommandLine>
+                </SynchronousCommand>
+                <SynchronousCommand wcm:action="add">
+                    <Order>4</Order>
                     <Description>Run Chrome installer</Description>
                     <RequiresUserInput>false</RequiresUserInput>
-                    <CommandLine>cmd /c timeout /t 10 /nobreak</CommandLine>
                     <CommandLine>cmd /c start /wait "" "C:\ChromeSetup.exe"</CommandLine>
                 </SynchronousCommand>
             </FirstLogonCommands>
