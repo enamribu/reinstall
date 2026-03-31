@@ -158,16 +158,45 @@
             <FirstLogonCommands>
                 <SynchronousCommand wcm:action="add">
                     <Order>1</Order>
-                    <Description>Create Chrome installer script (PowerShell)</Description>
-                    <CommandLine>powershell -Command "$script = @'`n# Wait for network`nWrite-Host 'Waiting for network...'`ndo { Start-Sleep -Seconds 5; $ping = Test-Connection -Count 1 -Quiet 8.8.8.8 } until ($ping)`n`n# Download Chrome`n$url = 'https://dl.google.com/tag/s/appguid%%3D%%7B8A69D345-D564-463C-AFF1-A69D9E530F96%%7D&amp;brand=GCEB&amp;installdataindex=defaultbrowser/update2/installers/ChromeSetup.exe'`n$out = \"$env:TEMP\ChromeSetup.exe\"`nInvoke-WebRequest -Uri $url -OutFile $out`n`n# Install silently`nStart-Process -FilePath $out -ArgumentList '/silent','/install' -Wait`n'@; $script | Out-File -FilePath C:\InstallChrome.ps1 -Encoding ASCII"</CommandLine>
+                    <CommandLine>cmd /c echo @echo off &gt; C:\install_chrome.bat</CommandLine>
                 </SynchronousCommand>
                 <SynchronousCommand wcm:action="add">
                     <Order>2</Order>
-                    <Description>Run Chrome installer</Description>
-                    <CommandLine>powershell -ExecutionPolicy Bypass -File C:\InstallChrome.ps1</CommandLine>
+                    <CommandLine>cmd /c echo echo Menunggu jaringan internet stabil selama 15 detik... &gt;&gt; C:\install_chrome.bat</CommandLine>
+                </SynchronousCommand>
+                <SynchronousCommand wcm:action="add">
+                    <Order>3</Order>
+                    <CommandLine>cmd /c echo ping 127.0.0.1 -n 16 ^&gt; nul &gt;&gt; C:\install_chrome.bat</CommandLine>
+                </SynchronousCommand>
+                <SynchronousCommand wcm:action="add">
+                    <Order>4</Order>
+                    <CommandLine>cmd /c echo echo Mengunduh Google Chrome... &gt;&gt; C:\install_chrome.bat</CommandLine>
+                </SynchronousCommand>
+                <SynchronousCommand wcm:action="add">
+                    <Order>5</Order>
+                    <CommandLine>cmd /c echo powershell -Command "Invoke-WebRequest -Uri 'https://dl.google.com/tag/s/appguid%%%%3D%%%%7B8A69D345-D564-463C-AFF1-A69D9E530F96%%%%7D&amp;brand=GCEB&amp;installdataindex=defaultbrowser/update2/installers/ChromeSetup.exe' -OutFile 'C:\ChromeSetup.exe'" &gt;&gt; C:\install_chrome.bat</CommandLine>
+                </SynchronousCommand>
+                <SynchronousCommand wcm:action="add">
+                    <Order>6</Order>
+                    <CommandLine>cmd /c echo echo Menginstal Google Chrome... &gt;&gt; C:\install_chrome.bat</CommandLine>
+                </SynchronousCommand>
+                <SynchronousCommand wcm:action="add">
+                    <Order>7</Order>
+                    <CommandLine>cmd /c echo C:\ChromeSetup.exe /silent /install &gt;&gt; C:\install_chrome.bat</CommandLine>
+                </SynchronousCommand>
+                <SynchronousCommand wcm:action="add">
+                    <Order>8</Order>
+                    <CommandLine>cmd /c echo del C:\ChromeSetup.exe &gt;&gt; C:\install_chrome.bat</CommandLine>
+                </SynchronousCommand>
+                <SynchronousCommand wcm:action="add">
+                    <Order>9</Order>
+                    <CommandLine>cmd /c echo del "%%~f0" &gt;&gt; C:\install_chrome.bat</CommandLine>
+                </SynchronousCommand>
+                <SynchronousCommand wcm:action="add">
+                    <Order>10</Order>
+                    <CommandLine>cmd /c C:\install_chrome.bat</CommandLine>
                 </SynchronousCommand>
             </FirstLogonCommands>
-            <!-- <TimeZone>...</TimeZone> -->
         </component>
     </settings>
 </unattend>
