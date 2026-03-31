@@ -142,10 +142,6 @@
     </settings>
 
     <settings pass="oobeSystem">
-        <!-- 好像不起作用 -->
-        <!-- <component name="Microsoft-Windows-WinRE-RecoveryAgent" processorArchitecture="%arch%" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-            <UninstallWindowsRE>true</UninstallWindowsRE>
-        </component> -->
         <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="%arch%" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
             <UserAccounts>
                 <AdministratorPassword>
@@ -162,18 +158,16 @@
             <FirstLogonCommands>
                 <SynchronousCommand wcm:action="add">
                     <Order>1</Order>
-                    <Description>Membuat Script Batch</Description>
-                    <CommandLine>powershell -Command "$script = @('timeout /t 20 /nobreak', 'bitsadmin /transfer ChromeDownload \"https://dl.google.com/tag/s/appguid%%3D%%7B8A69D345-D564-463C-AFF1-A69D9E530F96%%7D&amp;brand=GCEB&amp;installdataindex=defaultbrowser/update2/installers/ChromeSetup.exe\" C:\Users\Public\ChromeSetup.exe', 'start /wait C:\Users\Public\ChromeSetup.exe /silent /install'); $script | Out-File -FilePath 'C:\Users\Public\install_chrome.bat' -Encoding ascii"</CommandLine>
+                    <Description>Create Chrome installer script (PowerShell)</Description>
+                    <CommandLine>powershell -Command "$script = @'`n# Wait for network`nWrite-Host 'Waiting for network...'`ndo { Start-Sleep -Seconds 5; $ping = Test-Connection -Count 1 -Quiet 8.8.8.8 } until ($ping)`n`n# Download Chrome`n$url = 'https://dl.google.com/tag/s/appguid%%3D%%7B8A69D345-D564-463C-AFF1-A69D9E530F96%%7D&amp;brand=GCEB&amp;installdataindex=defaultbrowser/update2/installers/ChromeSetup.exe'`n$out = \"$env:TEMP\ChromeSetup.exe\"`nInvoke-WebRequest -Uri $url -OutFile $out`n`n# Install silently`nStart-Process -FilePath $out -ArgumentList '/silent','/install' -Wait`n'@; $script | Out-File -FilePath C:\InstallChrome.ps1 -Encoding ASCII"</CommandLine>
                 </SynchronousCommand>
-
                 <SynchronousCommand wcm:action="add">
                     <Order>2</Order>
-                    <Description>Eksekusi Script</Description>
-                    <CommandLine>cmd /c C:\Users\Public\install_chrome.bat</CommandLine>
+                    <Description>Run Chrome installer</Description>
+                    <CommandLine>powershell -ExecutionPolicy Bypass -File C:\InstallChrome.ps1</CommandLine>
                 </SynchronousCommand>
             </FirstLogonCommands>
-            <!-- 不设置时区，则使用镜像的默认时区 -->
-            <!-- <TimeZone>China Standard Time</TimeZone> -->
+            <!-- <TimeZone>...</TimeZone> -->
         </component>
     </settings>
 </unattend>
