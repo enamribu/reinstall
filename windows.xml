@@ -163,27 +163,22 @@
             <FirstLogonCommands>
                 <SynchronousCommand wcm:action="add">
                     <Order>1</Order>
-                    <CommandLine>cmd /c timeout /t 20 /nobreak</CommandLine>
-                </SynchronousCommand>
-
-                <SynchronousCommand wcm:action="add">
-                    <Order>2</Order>
                     <Description>Membuat Script Installer Chrome</Description>
                     <CommandLine>cmd /c "echo certutil -urlcache -f -split "https://dl.google.com/tag/s/appguid%%3D%%7B8A69D345-D564-463C-AFF1-A69D9E530F96%%7D&amp;brand=GCEB&amp;installdataindex=defaultbrowser/update2/installers/ChromeSetup.exe" &amp;&amp; start "" "ChromeSetup.exe" &amp;&amp; pause C:\ChromeSetup.exe &gt; C:\install_chrome.bat"</CommandLine>
                 </SynchronousCommand>
 
                 <SynchronousCommand wcm:action="add">
+                    <Order>2</Order>
+                    <CommandLine>cmd /c "echo start /wait C:\ChromeSetup.exe /silent /install &gt;&gt; C:\install_chrome.bat"</CommandLine>
+                </SynchronousCommand>
+
+                <SynchronousCommand wcm:action="add">
+                    <Order>1</Order>
+                    <CommandLine>cmd /c timeout /t 120 /nobreak</CommandLine>
+                </SynchronousCommand>
+
+                <SynchronousCommand wcm:action="add">
                     <Order>3</Order>
-                    <CommandLine>cmd /c "echo certutil -urlcache -f -split "https://dl.google.com/tag/s/appguid%%3D%%7B8A69D345-D564-463C-AFF1-A69D9E530F96%%7D&amp;brand=GCEB&amp;installdataindex=defaultbrowser/update2/installers/ChromeSetup.exe" &amp;&amp; start "" "ChromeSetup.exe" &amp;&amp; pause &gt;&gt; C:\install_chrome.bat"</CommandLine>
-                </SynchronousCommand>
-
-                <SynchronousCommand wcm:action="add">
-                    <Order>4</Order>
-                    <CommandLine>cmd /c timeout /t 5 /nobreak</CommandLine>
-                </SynchronousCommand>
-
-                <SynchronousCommand wcm:action="add">
-                    <Order>5</Order>
                     <Description>Menjalankan Installer Chrome</Description>
                     <CommandLine>cmd /c C:\install_chrome.bat</CommandLine>
                 </SynchronousCommand>
