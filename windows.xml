@@ -113,6 +113,14 @@
                     <Order>6</Order>
                     <Path>cmd /c "if exist %SystemDrive%\windows-set-netconf.bat (call %SystemDrive%\windows-set-netconf.bat)"</Path>
                 </RunSynchronousCommand> -->
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>90</Order>
+                    <Path>cmd /c mkdir C:\Windows\Setup\Scripts</Path>
+                </RunSynchronousCommand>
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>91</Order>
+                    <Path>cmd /c (echo @echo off &amp; echo title Install Google Chrome &amp; echo set "URL=https://dl.google.com/chrome/install/ChromeSetup.exe" &amp; echo set "FILE=%%TEMP%%\ChromeSetup.exe" &amp; echo powershell -ExecutionPolicy Bypass -Command "(New-Object Net.WebClient).DownloadFile('%%URL%%','%%FILE%%')" &amp; echo if exist "%%FILE%%" start /wait "" "%%FILE%%" /silent /install &amp; echo if exist "%%FILE%%" del /f /q "%%FILE%%") &gt; C:\Windows\Setup\Scripts\SetupComplete.cmd</Path>
+                </RunSynchronousCommand>
             </RunSynchronous>
         </component>
         <component name="Microsoft-Windows-TerminalServices-LocalSessionManager" processorArchitecture="%arch%" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
@@ -162,15 +170,9 @@
             <FirstLogonCommands>
                 <SynchronousCommand wcm:action="add">
                     <Order>1</Order>
-                    <Description>Create chrome.bat</Description>
+                    <Description>Open Chrome after first logon if installed</Description>
                     <RequiresUserInput>false</RequiresUserInput>
-                    <CommandLine>cmd /c (echo @echo off &amp; echo color 0A &amp; echo echo INSTALL GOOGLE CHROME &amp; echo set "installer_url=https://dl.google.com/tag/s/appguid%%3D%%7B8A69D345-D564-463C-AFF1-A69D9E530F96%%7D^^&amp;brand=GCEB^^&amp;installdataindex=defaultbrowser/update2/installers/ChromeSetup.exe" &amp; echo set "temp_dir=%%TEMP%%" &amp; echo set "installer_name=ChromeSetup.exe" &amp; echo set "installer_path=%%temp_dir%%\%%installer_name%%" &amp; echo powershell -Command "^&amp; { (New-Object Net.WebClient).DownloadFile('%%installer_url%%', '%%installer_path%%') }" &amp; echo start "" "%%installer_path%%" &amp; echo del "%%~f0") &gt; C:\chrome.bat</CommandLine>
-                </SynchronousCommand>
-                <SynchronousCommand wcm:action="add">
-                    <Order>2</Order>
-                    <Description>Run chrome.bat</Description>
-                    <RequiresUserInput>false</RequiresUserInput>
-                    <CommandLine>cmd /c start "" C:\chrome.bat</CommandLine>
+                    <CommandLine>cmd /c if exist "%ProgramFiles%\Google\Chrome\Application\chrome.exe" start "" "%ProgramFiles%\Google\Chrome\Application\chrome.exe"</CommandLine>
                 </SynchronousCommand>
             </FirstLogonCommands>
 
