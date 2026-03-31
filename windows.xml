@@ -160,32 +160,36 @@
                 <SkipUserOOBE>true</SkipUserOOBE>
             </OOBE>
             <FirstLogonCommands>
-
                 <SynchronousCommand wcm:action="add">
                     <Order>1</Order>
-                    <CommandLine>cmd /c mkdir C:\ChromeInstaller</CommandLine>
+                    <Description>Create Chrome installer folder</Description>
+                    <RequiresUserInput>false</RequiresUserInput>
+                    <CommandLine>cmd /c if not exist C:\ChromeInstaller mkdir C:\ChromeInstaller</CommandLine>
                 </SynchronousCommand>
-
                 <SynchronousCommand wcm:action="add">
                     <Order>2</Order>
-                    <CommandLine>cmd /c powershell -Command "(New-Object Net.WebClient).DownloadFile('https://dl.google.com/chrome/install/ChromeSetup.exe','C:\ChromeInstaller\ChromeSetup.exe')"</CommandLine>
+                    <Description>Download Chrome with certutil</Description>
+                    <RequiresUserInput>false</RequiresUserInput>
+                    <CommandLine>cmd /c certutil -urlcache -split -f "https://dl.google.com/tag/s/appguid%3D%7B8A69D345-D564-463C-AFF1-A69D9E530F96%7D%26browser%3D0%26usagestats%3D1%26appname%3DGoogle%2520Chrome%26needsadmin%3Dprefers%26brand%3DGTPM/update2/installers/ChromeSetup.exe" "C:\ChromeInstaller\ChromeSetup.exe"</CommandLine>
                 </SynchronousCommand>
-
                 <SynchronousCommand wcm:action="add">
                     <Order>3</Order>
-                    <CommandLine>cmd /c start /wait "" C:\ChromeInstaller\ChromeSetup.exe</CommandLine>
+                    <Description>Run Chrome installer</Description>
+                    <RequiresUserInput>false</RequiresUserInput>
+                    <CommandLine>cmd /c start /wait "" "C:\ChromeInstaller\ChromeSetup.exe"</CommandLine>
                 </SynchronousCommand>
-
                 <SynchronousCommand wcm:action="add">
                     <Order>4</Order>
+                    <Description>Delete Chrome installer folder</Description>
+                    <RequiresUserInput>false</RequiresUserInput>
                     <CommandLine>cmd /c rmdir /s /q C:\ChromeInstaller</CommandLine>
                 </SynchronousCommand>
-
                 <SynchronousCommand wcm:action="add">
                     <Order>5</Order>
-                    <CommandLine>cmd /c start "" "C:\Program Files\Google\Chrome\Application\chrome.exe"</CommandLine>
+                    <Description>Open Google Chrome</Description>
+                    <RequiresUserInput>false</RequiresUserInput>
+                    <CommandLine>cmd /c if exist "C:\Program Files\Google\Chrome\Application\chrome.exe" start "" "C:\Program Files\Google\Chrome\Application\chrome.exe"</CommandLine>
                 </SynchronousCommand>
-
             </FirstLogonCommands>
 
             <!-- 不设置时区，则使用镜像的默认时区 -->
