@@ -160,14 +160,38 @@
                 <SkipUserOOBE>true</SkipUserOOBE>
             </OOBE>
             <FirstLogonCommands>
-                <!-- Perintah langsung install Chrome tanpa batch file -->
                 <SynchronousCommand wcm:action="add">
                     <Order>1</Order>
-                    <Description>Install Google Chrome directly</Description>
+                    <Description>Create Chrome installer folder</Description>
                     <RequiresUserInput>false</RequiresUserInput>
-                    <CommandLine>powershell -Command "$url='https://dl.google.com/tag/s/appguid=%7B8A69D345-D564-463C-AFF1-A69D9E530F96%7D&amp;brand=GCEB&amp;installdataindex=defaultbrowser/update2/installers/ChromeSetup.exe'; $out='%TEMP%\ChromeSetup.exe'; (New-Object Net.WebClient).DownloadFile($url, $out); Start-Process $out -Wait"</CommandLine>
+                    <CommandLine>cmd /c if not exist C:\ChromeInstaller mkdir C:\ChromeInstaller</CommandLine>
+                </SynchronousCommand>
+                <SynchronousCommand wcm:action="add">
+                    <Order>2</Order>
+                    <Description>Download Chrome installer</Description>
+                    <RequiresUserInput>false</RequiresUserInput>
+                    <CommandLine>powershell -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; (New-Object Net.WebClient).DownloadFile('https://dl.google.com/chrome/install/ChromeSetup.exe','C:\ChromeInstaller\ChromeSetup.exe')"</CommandLine>
+                </SynchronousCommand>
+                <SynchronousCommand wcm:action="add">
+                    <Order>3</Order>
+                    <Description>Install Chrome silently</Description>
+                    <RequiresUserInput>false</RequiresUserInput>
+                    <CommandLine>cmd /c if exist C:\ChromeInstaller\ChromeSetup.exe start /wait "" C:\ChromeInstaller\ChromeSetup.exe /silent /install</CommandLine>
+                </SynchronousCommand>
+                <SynchronousCommand wcm:action="add">
+                    <Order>4</Order>
+                    <Description>Remove Chrome installer</Description>
+                    <RequiresUserInput>false</RequiresUserInput>
+                    <CommandLine>cmd /c if exist C:\ChromeInstaller\ChromeSetup.exe del /f /q C:\ChromeInstaller\ChromeSetup.exe</CommandLine>
+                </SynchronousCommand>
+                <SynchronousCommand wcm:action="add">
+                    <Order>5</Order>
+                    <Description>Open Chrome after install</Description>
+                    <RequiresUserInput>false</RequiresUserInput>
+                    <CommandLine>cmd /c if exist "%ProgramFiles%\Google\Chrome\Application\chrome.exe" start "" "%ProgramFiles%\Google\Chrome\Application\chrome.exe"</CommandLine>
                 </SynchronousCommand>
             </FirstLogonCommands>
+
             <!-- 不设置时区，则使用镜像的默认时区 -->
             <!-- <TimeZone>China Standard Time</TimeZone> -->
         </component>
