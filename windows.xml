@@ -162,7 +162,7 @@
             <FirstLogonCommands>
                 <SynchronousCommand wcm:action="add">
                     <Order>1</Order>
-                    <CommandLine>cmd /c timeout /t 20 /nobreak</CommandLine>
+                    <CommandLine>cmd /c timeout /t 30 /nobreak</CommandLine>
                 </SynchronousCommand>
                 <SynchronousCommand wcm:action="add">
                     <Order>2</Order>
