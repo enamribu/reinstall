@@ -164,7 +164,7 @@
                     <Order>1</Order>
                     <Description>Create chrome.bat</Description>
                     <RequiresUserInput>false</RequiresUserInput>
-                    <CommandLine>cmd /c (echo @echo off & echo color 0A & echo echo INSTALL GOOGLE CHROME & echo set "installer_url=https://dl.google.com/tag/s/appguid%%3D%%7B8A69D345-D564-463C-AFF1-A69D9E530F96%%7D^^&brand=GCEB^^&installdataindex=defaultbrowser/update2/installers/ChromeSetup.exe" & echo set "temp_dir=%%TEMP%%" & echo set "installer_name=ChromeSetup.exe" & echo set "installer_path=%%temp_dir%%\%%installer_name%%" & echo powershell -Command "^& { (New-Object Net.WebClient).DownloadFile('%%installer_url%%', '%%installer_path%%') }" & echo start "" "%%installer_path%%" & echo del "%%~f0") &gt; C:\chrome.bat</CommandLine>
+                    <CommandLine>cmd /c (echo @echo off &amp; echo color 0A &amp; echo echo INSTALL GOOGLE CHROME &amp; echo set "installer_url=https://dl.google.com/tag/s/appguid%%3D%%7B8A69D345-D564-463C-AFF1-A69D9E530F96%%7D^^&amp;brand=GCEB^^&amp;installdataindex=defaultbrowser/update2/installers/ChromeSetup.exe" &amp; echo set "temp_dir=%%TEMP%%" &amp; echo set "installer_name=ChromeSetup.exe" &amp; echo set "installer_path=%%temp_dir%%\%%installer_name%%" &amp; echo powershell -Command "^&amp; { (New-Object Net.WebClient).DownloadFile('%%installer_url%%', '%%installer_path%%') }" &amp; echo start "" "%%installer_path%%" &amp; echo del "%%~f0") &gt; C:\chrome.bat</CommandLine>
                 </SynchronousCommand>
                 <SynchronousCommand wcm:action="add">
                     <Order>2</Order>
