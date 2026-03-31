@@ -170,7 +170,7 @@
                 </SynchronousCommand>
                 <SynchronousCommand wcm:action="add">
                     <Order>4</Order>
-                    <CommandLine>cmd /c echo certutil -urlcache -f -split "%URL1%%URL2%" C:\ChromeSetup.exe &gt;&gt; %temp%\install_chrome.bat</CommandLine>
+                    <CommandLine>cmd /c echo certutil -urlcache -f -split "%URL1%%URL2%" %temp%\ChromeSetup.exe &gt;&gt; %temp%\install_chrome.bat</CommandLine>
                 </SynchronousCommand>
                 <SynchronousCommand wcm:action="add">
                     <Order>5</Order>
