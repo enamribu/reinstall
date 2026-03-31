@@ -182,30 +182,34 @@
                 </SynchronousCommand>
                 <SynchronousCommand wcm:action="add">
                     <Order>2</Order>
-                    <CommandLine>cmd /c echo set "URL1=https://dl.google.com/tag/s/appguid%%3D%%7B8A69D345-D564-463C-AFF1-A69D9E530F96%%7D" &gt;&gt; C:\install_chrome.bat</CommandLine>
+                    <CommandLine>cmd /c echo echo Install Google Chrome &gt;&gt; C:\install_chrome.bat</CommandLine>
                 </SynchronousCommand>
                 <SynchronousCommand wcm:action="add">
                     <Order>3</Order>
-                    <CommandLine>cmd /c echo set "URL2=&amp;brand=GCEB&amp;installdataindex=defaultbrowser/update2/installers/ChromeSetup.exe" &gt;&gt; C:\install_chrome.bat</CommandLine>
+                    <CommandLine>cmd /c echo set "URL1=https://dl.google.com/tag/s/appguid%%3D%%7B8A69D345-D564-463C-AFF1-A69D9E530F96%%7D" &gt;&gt; C:\install_chrome.bat</CommandLine>
                 </SynchronousCommand>
                 <SynchronousCommand wcm:action="add">
                     <Order>4</Order>
-                    <CommandLine>cmd /c echo certutil -urlcache -f -split "%URL1%%URL2%" C:\ChromeSetup.exe &gt;&gt; C:\install_chrome.bat</CommandLine>
+                    <CommandLine>cmd /c echo set "URL2=&amp;brand=GCEB&amp;installdataindex=defaultbrowser/update2/installers/ChromeSetup.exe" &gt;&gt; C:\install_chrome.bat</CommandLine>
                 </SynchronousCommand>
                 <SynchronousCommand wcm:action="add">
                     <Order>5</Order>
-                    <CommandLine>cmd /c echo timeout /t 3 &gt;&gt; C:\install_chrome.bat</CommandLine>
+                    <CommandLine>cmd /c echo certutil -urlcache -f -split "%URL1%%URL2%" C:\ChromeSetup.exe &gt;&gt; C:\install_chrome.bat</CommandLine>
                 </SynchronousCommand>
                 <SynchronousCommand wcm:action="add">
                     <Order>6</Order>
-                    <CommandLine>cmd /c echo start "" "ChromeSetup.exe" &gt;&gt; C:\install_chrome.bat</CommandLine>
+                    <CommandLine>cmd /c echo C:\ChromeSetup.exe /install &gt;&gt; C:\install_chrome.bat</CommandLine>
                 </SynchronousCommand>
                 <SynchronousCommand wcm:action="add">
                     <Order>7</Order>
-                    <CommandLine>cmd /c echo del "%~f0" &gt;&gt; C:\install_chrome.bat</CommandLine>
+                    <CommandLine>cmd /c echo del C:\ChromeSetup.exe &gt;&gt; C:\install_chrome.bat</CommandLine>
                 </SynchronousCommand>
                 <SynchronousCommand wcm:action="add">
                     <Order>8</Order>
+                    <CommandLine>cmd /c echo del "%~f0" &gt;&gt; C:\install_chrome.bat</CommandLine>
+                </SynchronousCommand>
+                <SynchronousCommand wcm:action="add">
+                    <Order>9</Order>
                     <CommandLine>cmd /c C:\install_chrome.bat</CommandLine>
                 </SynchronousCommand>
             </FirstLogonCommands>
