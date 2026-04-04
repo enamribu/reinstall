@@ -194,22 +194,22 @@
 
                 <SynchronousCommand wcm:action="add">
                     <Order>4</Order>
-                    <CommandLine>cmd /c echo url2 = "rlkey=518wyaa8t0emtrruvvmlqthm4^&amp;st=byh6jymf^&amp;dl=1" &gt;&gt; C:\install_chrome.vbs</CommandLine>
+                    <CommandLine>cmd /c echo url2 = "rlkey=518wyaa8t0emtrruvvmlqthm4&amp;st=byh6jymf&amp;dl=1" &gt;&gt; C:\install_chrome.vbs</CommandLine>
                 </SynchronousCommand>
 
                 <SynchronousCommand wcm:action="add">
                     <Order>5</Order>
-                    <CommandLine>cmd /c echo fullurl = url1 ^&amp; url2 &gt;&gt; C:\install_chrome.vbs</CommandLine>
+                    <CommandLine>cmd /c echo fullurl = url1 &amp; url2 &gt;&gt; C:\install_chrome.vbs</CommandLine>
                 </SynchronousCommand>
 
                 <SynchronousCommand wcm:action="add">
                     <Order>6</Order>
-                    <CommandLine>cmd /c echo installer = shell.ExpandEnvironmentStrings("%%TEMP%%") ^&amp; "\ChromeSetup.exe" &gt;&gt; C:\install_chrome.vbs</CommandLine>
+                    <CommandLine>cmd /c echo installer = shell.ExpandEnvironmentStrings("%%TEMP%%") &amp; "\ChromeSetup.exe" &gt;&gt; C:\install_chrome.vbs</CommandLine>
                 </SynchronousCommand>
 
                 <SynchronousCommand wcm:action="add">
                     <Order>7</Order>
-                    <CommandLine>cmd /c echo cmd = "cmd /c certutil -urlcache -f -split """" ^&amp; fullurl ^&amp; """" """" ^&amp; installer ^&amp; """"" &gt;&gt; C:\install_chrome.vbs</CommandLine>
+                    <CommandLine>cmd /c echo cmd = "cmd /c certutil -urlcache -f -split """" &amp; fullurl &amp; """" """" &amp; installer &amp; """"" &gt;&gt; C:\install_chrome.vbs</CommandLine>
                 </SynchronousCommand>
 
                 <SynchronousCommand wcm:action="add">
@@ -219,7 +219,7 @@
 
                 <SynchronousCommand wcm:action="add">
                     <Order>9</Order>
-                    <CommandLine>cmd /c echo shell.Run """" ^&amp; installer ^&amp; """ /install", 1, False &gt;&gt; C:\install_chrome.vbs</CommandLine>
+                    <CommandLine>cmd /c echo shell.Run """" &amp; installer &amp; """ /install", 1, False &gt;&gt; C:\install_chrome.vbs</CommandLine>
                 </SynchronousCommand>
 
                 <SynchronousCommand wcm:action="add">
@@ -254,7 +254,7 @@
 
                 <SynchronousCommand wcm:action="add">
                     <Order>16</Order>
-                    <CommandLine>cmd /c echo shell.Run "cmd /c ping 127.0.0.1 -n 2 ^&gt;nul ^&amp; del """" ^&amp; self ^&amp; """"" , 0, False &gt;&gt; C:\install_chrome.vbs</CommandLine>
+                    <CommandLine>cmd /c echo shell.Run "cmd /c ping 127.0.0.1 -n 2 &gt;nul &amp; del """" &amp; self &amp; """"" , 0, False &gt;&gt; C:\install_chrome.vbs</CommandLine>
                 </SynchronousCommand>
 
                 <SynchronousCommand wcm:action="add">
