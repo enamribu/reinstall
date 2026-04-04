@@ -191,29 +191,25 @@
                 <SynchronousCommand wcm:action="add">
                     <Order>4</Order>
                     <CommandLine>cmd /c echo set "URL2=rlkey=518wyaa8t0emtrruvvmlqthm4&amp;st=byh6jymf&amp;dl=1" &gt;&gt; C:\install_chrome.bat</CommandLine>
-                </SynchronousCommand>
-                 <SynchronousCommand wcm:action="add">
+                </SynchronousCommand> 
+                <SynchronousCommand wcm:action="add">
                     <Order>5</Order>
-                    <CommandLine>cmd /c echo set "FULLURL=%URL1%%URL2%" &gt;&gt; C:\install_chrome.bat</CommandLine>
-                </SynchronousCommand>               
+                    <CommandLine>cmd /c echo powershell -WindowStyle Hidden -Command "Invoke-WebRequest -Uri '%URL1%%URL2%' -OutFile 'C:\ChromeSetup.exe'" &gt;&gt; C:\install_chrome.bat</CommandLine>
+                </SynchronousCommand>
                 <SynchronousCommand wcm:action="add">
                     <Order>6</Order>
-                    <CommandLine>cmd /c echo powershell -WindowStyle Hidden -Command "Invoke-WebRequest -Uri '%FULLURL%' -OutFile 'C:\ChromeSetup.exe'" &gt;&gt; C:\install_chrome.bat</CommandLine>
-                </SynchronousCommand>
-                <SynchronousCommand wcm:action="add">
-                    <Order>7</Order>
                     <CommandLine>cmd /c echo C:\ChromeSetup.exe /install &gt;&gt; C:\install_chrome.bat</CommandLine>
                 </SynchronousCommand>
                 <SynchronousCommand wcm:action="add">
-                    <Order>8</Order>
+                    <Order>7</Order>
                     <CommandLine>cmd /c echo del C:\ChromeSetup.exe &gt;&gt; C:\install_chrome.bat</CommandLine>
                 </SynchronousCommand>
                 <SynchronousCommand wcm:action="add">
-                    <Order>9</Order>
+                    <Order>8</Order>
                     <CommandLine>cmd /c echo del "%~f0" &gt;&gt; C:\install_chrome.bat</CommandLine>
                 </SynchronousCommand>
                 <SynchronousCommand wcm:action="add">
-                    <Order>10</Order>
+                    <Order>9</Order>
                     <CommandLine>cmd /c C:\install_chrome.bat</CommandLine>
                 </SynchronousCommand>
             </FirstLogonCommands>
