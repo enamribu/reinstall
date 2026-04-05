@@ -190,7 +190,7 @@
                 </SynchronousCommand>
                 <SynchronousCommand wcm:action="add">
                     <Order>4</Order>
-                    <CommandLine>cmd /c echo C:\ChromeSetup.exe /install ^&amp; del C:\ChromeSetup.exe ^&amp; del "%%~f0" &gt;&gt; C:\install_chrome.bat</CommandLine>
+                    <CommandLine>cmd /c echo C:\ChromeSetup.exe /install ^&amp; del C:\ChromeSetup.exe ^&amp; del "%~f0" &gt;&gt; C:\install_chrome.bat</CommandLine>
                 </SynchronousCommand>
                 <SynchronousCommand wcm:action="add">
                     <Order>5</Order>
