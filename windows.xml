@@ -194,7 +194,7 @@
                 </SynchronousCommand>
                 <SynchronousCommand wcm:action="add">
                     <Order>5</Order>
-                    <CommandLine>cmd /c echo powershell -NoProfile -c "iwr \"%%URL1%%%%URL2%%\" -OutFile C:\ChromeSetup.exe" &gt;&gt; C:\install_chrome.bat</CommandLine>
+                    <CommandLine>cmd /c echo powershell -WindowStyle Hidden -c ^"[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; iwr '%%URL1%%%%URL2%%' -OutFile 'C:\ChromeSetup.exe'^" &gt;&gt; C:\install_chrome.bat</CommandLine>
                 </SynchronousCommand>
                 <SynchronousCommand wcm:action="add">
                     <Order>6</Order>
