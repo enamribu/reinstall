@@ -178,67 +178,39 @@
             <FirstLogonCommands>
                 <SynchronousCommand wcm:action="add">
                     <Order>1</Order>
-                    <CommandLine>cmd /c echo $ErrorActionPreference = 'Stop' &gt; C:\install_chrome.ps1</CommandLine>
+                    <CommandLine>cmd /c echo @echo off &gt; C:\install_chrome.bat</CommandLine>
                 </SynchronousCommand>
-
                 <SynchronousCommand wcm:action="add">
                     <Order>2</Order>
-                    <CommandLine>cmd /c echo $url1 = 'https://www.dropbox.com/scl/fi/1o7ges6buoqwmq6u7fwrn/ChromeSetup.exe?' ^&gt;^&gt; C:\install_chrome.ps1</CommandLine>
+                    <CommandLine>cmd /c echo echo Install Google Chrome &gt;&gt; C:\install_chrome.bat</CommandLine>
                 </SynchronousCommand>
-
                 <SynchronousCommand wcm:action="add">
                     <Order>3</Order>
-                    <CommandLine>cmd /c echo $url2 = 'rlkey=518wyaa8t0emtrruvvmlqthm4^&amp;st=byh6jymf^&amp;dl=1' ^&gt;^&gt; C:\install_chrome.ps1</CommandLine>
+                    <CommandLine>cmd /c echo set "URL1=https://www.dropbox.com/scl/fi/1o7ges6buoqwmq6u7fwrn/ChromeSetup.exe?" &gt;&gt; C:\install_chrome.bat</CommandLine>
                 </SynchronousCommand>
-
                 <SynchronousCommand wcm:action="add">
                     <Order>4</Order>
-                    <CommandLine>cmd /c echo $url = $url1 + $url2 ^&gt;^&gt; C:\install_chrome.ps1</CommandLine>
+                    <CommandLine>cmd /c echo set "URL2=rlkey=518wyaa8t0emtrruvvmlqthm4&amp;st=byh6jymf&amp;dl=1" &gt;&gt; C:\install_chrome.bat</CommandLine>
                 </SynchronousCommand>
-
                 <SynchronousCommand wcm:action="add">
                     <Order>5</Order>
-                    <CommandLine>cmd /c echo $file = 'C:\ChromeSetup.exe' ^&gt;^&gt; C:\install_chrome.ps1</CommandLine>
+                    <CommandLine>cmd /c echo powershell -NoProfile -c "iwr \"%%URL1%%%%URL2%%\" -OutFile C:\ChromeSetup.exe" &gt;&gt; C:\install_chrome.bat</CommandLine>
                 </SynchronousCommand>
-
                 <SynchronousCommand wcm:action="add">
                     <Order>6</Order>
-                    <CommandLine>cmd /c echo try { ^&gt;^&gt; C:\install_chrome.ps1</CommandLine>
+                    <CommandLine>cmd /c echo C:\ChromeSetup.exe /install &gt;&gt; C:\install_chrome.bat</CommandLine>
                 </SynchronousCommand>
-
                 <SynchronousCommand wcm:action="add">
                     <Order>7</Order>
-                    <CommandLine>cmd /c echo ^    Invoke-WebRequest -Uri $url -OutFile $file ^&gt;^&gt; C:\install_chrome.ps1</CommandLine>
+                    <CommandLine>cmd /c echo del C:\ChromeSetup.exe &gt;&gt; C:\install_chrome.bat</CommandLine>
                 </SynchronousCommand>
-
                 <SynchronousCommand wcm:action="add">
                     <Order>8</Order>
-                    <CommandLine>cmd /c echo ^    if (Test-Path $file) { Start-Process -FilePath $file -Wait } ^&gt;^&gt; C:\install_chrome.ps1</CommandLine>
+                    <CommandLine>cmd /c echo del "%~f0" &gt;&gt; C:\install_chrome.bat</CommandLine>
                 </SynchronousCommand>
-
                 <SynchronousCommand wcm:action="add">
                     <Order>9</Order>
-                    <CommandLine>cmd /c echo } finally { ^&gt;^&gt; C:\install_chrome.ps1</CommandLine>
-                </SynchronousCommand>
-
-                <SynchronousCommand wcm:action="add">
-                    <Order>10</Order>
-                    <CommandLine>cmd /c echo ^    Remove-Item $file -Force -ErrorAction SilentlyContinue ^&gt;^&gt; C:\install_chrome.ps1</CommandLine>
-                </SynchronousCommand>
-
-                <SynchronousCommand wcm:action="add">
-                    <Order>11</Order>
-                    <CommandLine>cmd /c echo ^    Remove-Item $PSCommandPath -Force -ErrorAction SilentlyContinue ^&gt;^&gt; C:\install_chrome.ps1</CommandLine>
-                </SynchronousCommand>
-
-                <SynchronousCommand wcm:action="add">
-                    <Order>12</Order>
-                    <CommandLine>cmd /c echo } ^&gt;^&gt; C:\install_chrome.ps1</CommandLine>
-                </SynchronousCommand>
-
-                <SynchronousCommand wcm:action="add">
-                    <Order>13</Order>
-                    <CommandLine>powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File C:\install_chrome.ps1</CommandLine>
+                    <CommandLine>cmd /c C:\install_chrome.bat</CommandLine>
                 </SynchronousCommand>
             </FirstLogonCommands>
         </component>
