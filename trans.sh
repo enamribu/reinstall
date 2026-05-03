@@ -67,17 +67,22 @@ is_run_from_locald() {
     [[ "$0" = "/etc/local.d/*" ]]
 }
 
+# reinstall.sh 有相同方法 add_community_repo_for_alpine
 add_community_repo() {
-    # 先检查原来的repo是不是egde
-    if grep -q '^http.*/edge/main$' /etc/apk/repositories; then
-        alpine_ver=edge
+    local ver mirror
+
+    # 先检查原来的 repo 是不是 edge 或者 latest-stable
+    if grep -q "^http.*/edge/main$" /etc/apk/repositories; then
+        ver=edge
+    elif grep -q "^http.*/latest-stable/main$" /etc/apk/repositories; then
+        ver=latest-stable
     else
-        alpine_ver=v$(cut -d. -f1,2 </etc/alpine-release)
+        ver=v$(cut -d. -f1,2 </etc/alpine-release)
     fi
 
-    if ! grep -q "^http.*/$alpine_ver/community$" /etc/apk/repositories; then
-        alpine_mirror=$(grep '^http.*/main$' /etc/apk/repositories | sed 's,/[^/]*/main$,,' | head -1)
-        echo $alpine_mirror/$alpine_ver/community >>/etc/apk/repositories
+    if ! grep -q "^http.*/$ver/community$" /etc/apk/repositories; then
+        mirror=$(grep '^http.*/main$' /etc/apk/repositories | sed 's,/[^/]*/main$,,' | head -1)
+        echo $mirror/$ver/community >>/etc/apk/repositories
     fi
 }
 
@@ -460,7 +465,7 @@ EOF
 }
 
 umount_all() {
-    dirs="/mnt /os /iso /wim /installer /nbd /nbd-boot /nbd-efi /nbd-test /root /nix"
+    dirs="/mnt /os /iso /wim /wim-tmp /installer /nbd /nbd-boot /nbd-efi /nbd-test /root /nix"
     regex=$(echo "$dirs" | sed 's, ,|,g')
     if mounts=$(mount | grep -Ew "on $regex" | awk '{print $3}' | tac); then
         for mount in $mounts; do
@@ -3476,8 +3481,9 @@ modify_linux() {
     find_and_mount() {
         mount_point=$1
         mount_dev=$(awk "\$2==\"$mount_point\" {print \$1}" $os_dir/etc/fstab)
+        mount_opts=$(awk "\$2==\"$mount_point\" {print \$4}" $os_dir/etc/fstab)
         if [ -n "$mount_dev" ]; then
-            mount $mount_dev $os_dir$mount_point
+            mount -o "$mount_opts" "$mount_dev" "$os_dir$mount_point"
         fi
     }
 
@@ -3505,9 +3511,13 @@ EOF
         # 防止删除 cloud-init / 安装 firmware 时不够内存
         create_swap_if_ram_less_than 2048 $os_dir/swapfile
 
-        find_and_mount /boot
-        find_and_mount /boot/efi
         mount_pseudo_fs $os_dir
+
+        # find_and_mount /boot
+        # find_and_mount /boot/efi
+        # fedora 的 fstab 还有 /home /var，因此用 mount -a
+        chroot $os_dir mount -a
+
         cp_resolv_conf $os_dir
 
         # 可以直接用 alpine 的 cloud-init 生成 Network Manager 配置
@@ -4402,23 +4412,19 @@ chroot_apt_autoremove() {
     change_confs() {
         action=$1
 
-        # 只有 16.04 有 01autoremove-kernels
-        # 16.04 结束支持后删除
-        for conf in 01autoremove 01autoremove-kernels; do
-            file=$os_dir/etc/apt/apt.conf.d/$conf
-            case "$action" in
-            change)
-                if [ -f $file ]; then
-                    sed -i.orig 's/VersionedKernelPackages/x/; s/NeverAutoRemove/x/' $file
-                fi
-                ;;
-            restore)
-                if [ -f $file.orig ]; then
-                    mv $file.orig $file
-                fi
-                ;;
-            esac
-        done
+        file=$os_dir/etc/apt/apt.conf.d/01autoremove
+        case "$action" in
+        change)
+            if [ -f $file ]; then
+                sed -i.orig 's/VersionedKernelPackages/x/; s/NeverAutoRemove/x/' $file
+            fi
+            ;;
+        restore)
+            if [ -f $file.orig ]; then
+                mv $file.orig $file
+            fi
+            ;;
+        esac
     }
 
     change_confs change
@@ -4927,19 +4933,6 @@ EOF
             done
         fi
 
-        # 16.04 arm64 镜像没有 grub 引导文件
-        if is_efi && ! [ -d $os_dir/boot/efi/EFI/ubuntu ]; then
-            chroot_apt_install $os_dir efibootmgr shim "grub-efi-$(get_axx64)"
-            # 创建 ubuntu 文件夹和 grubaa64.efi
-            DEBIAN_FRONTEND=noninteractive chroot $os_dir dpkg-reconfigure "grub-efi-$(get_axx64)"
-
-            cat <<EOF >"$os_dir/boot/efi/EFI/ubuntu/grub.cfg"
-search.fs_uuid $os_part_uuid root
-set prefix=(\$root)'/boot/grub'
-configfile \$prefix/grub.cfg
-EOF
-        fi
-
         # 避免 do-release-upgrade 时自动执行 dpkg-reconfigure grub-xx 但是 efi/biosgrub 分区不存在而导致报错
         # shellcheck disable=SC2046
         chroot_apt_remove $os_dir $(is_efi && echo 'grub-pc' || echo 'grub-efi*' 'shim*')
@@ -4995,43 +4988,31 @@ EOF
 
         # 网络配置
         # 18.04+ netplan
-        if is_have_cmd_on_disk $os_dir netplan; then
-            # 避免删除 cloud-init 后，minimal 镜像的 netplan.io 被 autoremove
-            chroot $os_dir apt-mark manual netplan.io
+        # 避免删除 cloud-init 后，minimal 镜像的 netplan.io 被 autoremove
+        chroot $os_dir apt-mark manual netplan.io
 
-            # 生成 cloud-init 网络配置
-            create_cloud_init_network_config $os_dir/net.cfg
+        # 生成 cloud-init 网络配置
+        create_cloud_init_network_config $os_dir/net.cfg
 
-            # ubuntu 18.04 cloud-init 版本 23.1.2，因此不用处理 onlink
+        # ubuntu 18.04 cloud-init 版本 23.1.2，因此不用处理 onlink
 
-            # 如果不是输出到 / 则不会生成 50-cloud-init.yaml
-            # 注意比较多了什么东西
-            if false; then
-                chroot $os_dir cloud-init devel net-convert \
-                    -p /net.cfg -k yaml -d /out -D ubuntu -O netplan
-                sed -Ei "/^[[:space:]]+set-name:/d" $os_dir/out/etc/netplan/50-cloud-init.yaml
-                cp $os_dir/out/etc/netplan/50-cloud-init.yaml $os_dir/etc/netplan/
+        # 如果不是输出到 / 则不会生成 50-cloud-init.yaml
+        # 注意比较多了什么东西
+        if false; then
+            chroot $os_dir cloud-init devel net-convert \
+                -p /net.cfg -k yaml -d /out -D ubuntu -O netplan
+            sed -Ei "/^[[:space:]]+set-name:/d" $os_dir/out/etc/netplan/50-cloud-init.yaml
+            cp $os_dir/out/etc/netplan/50-cloud-init.yaml $os_dir/etc/netplan/
 
-                # 清理
-                rm -rf $os_dir/net.cfg $os_dir/out
-            else
-                chroot $os_dir cloud-init devel net-convert \
-                    -p /net.cfg -k yaml -d / -D ubuntu -O netplan
-                sed -Ei "/^[[:space:]]+set-name:/d" $os_dir/etc/netplan/50-cloud-init.yaml
-
-                # 清理
-                rm -rf $os_dir/net.cfg
-            fi
+            # 清理
+            rm -rf $os_dir/net.cfg $os_dir/out
         else
-            # 避免删除 cloud-init 后 ifupdown 被 autoremove
-            chroot $os_dir apt-mark manual ifupdown
+            chroot $os_dir cloud-init devel net-convert \
+                -p /net.cfg -k yaml -d / -D ubuntu -O netplan
+            sed -Ei "/^[[:space:]]+set-name:/d" $os_dir/etc/netplan/50-cloud-init.yaml
 
-            # 16.04 镜像用 ifupdown/networking 管理网络
-            # 要安装 resolveconf，不然 /etc/resolv.conf 为空
-            chroot_apt_install $os_dir resolvconf
-            ln -sf /run/resolvconf/resolv.conf $os_dir/etc/resolv.conf.orig
-
-            create_ifupdown_config $os_dir/etc/network/interfaces
+            # 清理
+            rm -rf $os_dir/net.cfg
         fi
 
         # 自带的 60-cloudimg-settings.conf 禁止了 PasswordAuthentication
@@ -5762,10 +5743,15 @@ get_filesize_mb() {
     du -m "$1" | awk '{print $1}'
 }
 
-is_absolute_path() {
-    # 检查路径是否以/开头
-    # 注意语法和 bash 不同
-    [[ "$1" = "/*" ]]
+mkdir_clear() {
+    local dir=$1
+
+    if [ -z "$dir" ] || [ "$dir" = / ]; then
+        return
+    fi
+
+    rm -rf "$dir"
+    mkdir -p "$dir"
 }
 
 # 注意使用方法是 list=$(list_add "$list" "$item_to_add")
@@ -5782,6 +5768,23 @@ is_list_has() {
     local list=$1
     local item=$2
     echo "$list" | grep -qFx "$item"
+}
+
+# reinstall.sh 有同名方法
+get_drivers() {
+    (
+        cd "$(readlink -f $1)"
+        while ! [ "$(pwd)" = / ]; do
+            if [ -d driver ]; then
+                if [ -d driver/module ]; then
+                    basename "$(readlink -f driver/module)"
+                else
+                    basename "$(readlink -f driver)"
+                fi
+            fi
+            cd ..
+        done
+    )
 }
 
 get_windows_type_from_windows_drive() {
@@ -5817,6 +5820,22 @@ get_windows_arch_from_windows_drive() {
     # 没有 CurrentControlSet
     hivexget $hive 'ControlSet001\Control\Session Manager\Environment' PROCESSOR_ARCHITECTURE
     apk del hivex
+}
+
+get_intel_download_url() {
+    local id=$1
+    local file_regex=$2
+
+    if is_in_china; then
+        local url=https://www.intel.cn/content/www/cn/zh/download/$id.html
+    else
+        local url=https://www.intel.com/content/www/us/en/download/$id.html
+    fi
+
+    # 将双引号替换成换行符，使每个链接占一行
+    # intel 禁止了 wget 下载网页
+    wget -U curl/7.54.1 "$url" -O- | sed 's,",\n,g' |
+        grep -Eio -m1 "https://.+/$file_regex" | grep .
 }
 
 install_windows() {
@@ -5974,14 +5993,21 @@ install_windows() {
         installation_type=$(get_selected_image_prop "Installation Type")
     fi
 
+    mount_iso_install_wim_to() {
+        local dir=$1
+
+        mkdir -p "$dir"
+        # shellcheck disable=SC2046
+        wimmount "$iso_install_wim" "$image_index" "$dir" \
+            $($is_swm && echo "--ref=$(dirname "$iso_install_wim")/$swm_ref")
+    }
+
     # 挂载 install.wim，检查
     # 1. 是否自带 sac 组件
     # 2. 是否自带 nvme 驱动
     # 3. 是否支持 sha256
     # 4. Installation Type
-    # shellcheck disable=SC2046
-    wimmount "$iso_install_wim" "$image_index" /wim/ \
-        $($is_swm && echo --ref=$(dirname "$iso_install_wim")/$swm_ref)
+    mount_iso_install_wim_to /wim
 
     # 获取版本号
     get_windows_version_from_windows_drive /wim
@@ -5998,7 +6024,7 @@ install_windows() {
     # 检测 sac 和 nvme
     {
         find_file_ignore_case /wim/Windows/System32/sacsess.exe && has_sac=true || has_sac=false
-        find_file_ignore_case /wim/Windows/INF/stornvme.inf && has_stornvme=true || has_stornvme=false
+        find_file_ignore_case /wim/Windows/System32/drivers/stornvme.sys && has_stornvme=true || has_stornvme=false
     } >/dev/null 2>&1
 
     # 检测是否支持 sha256 签名的驱动
@@ -6218,8 +6244,9 @@ install_windows() {
     add_drivers() {
         info "Add drivers"
 
+        # 驱动下载临时文件夹
         drv=/os/drivers
-        mkdir -p "$drv" # 驱动下载临时文件夹
+        mkdir_clear "$drv"
 
         # 这里有坑
         # $(get_cloud_vendor) 调用了 cache_dmi_and_virt
@@ -6276,6 +6303,26 @@ install_windows() {
         # RST v20 inf 要求 19041 或以上
         if [ -d /sys/module/vmd ] && [ "$build_ver" -ge 15063 ] && [ "$arch_wim" = x86_64 ]; then
             add_driver_vmd
+        fi
+
+        # 主网卡，有 IP 地址
+        # root@localhost:~# get_drivers /sys/class/net/eth0
+        # hv_netvsc
+
+        # 加速网卡，无 IP 地址
+        # root@localhost:~# get_drivers /sys/class/net/enP30832s1
+        # mana
+        # pci_hyperv
+
+        # vpci
+        # 对应 linux 的 pci_hyperv
+        # win10 ltsc 2021 boot.wim 没有 vpci.sys，导致找不到 azure nvme 硬盘
+        # 要从 install.wim 提取
+        # PE 下不用上网，因此不需要检测网卡是否用 pci_hyperv
+        if [ -d /sys/module/pci_hyperv ] &&
+            get_drivers "/sys/block/$xda" | grep -qx pci_hyperv &&
+            ! find_file_ignore_case /wim/Windows/System32/drivers/vpci.sys >/dev/null 2>&1; then
+            add_driver_vpci
         fi
 
         # 厂商驱动
@@ -6357,9 +6404,7 @@ install_windows() {
                         2025) echo 838943 ;;
                         esac
                     )
-                    # intel 禁止了 wget 下载网页
-                    wget -U curl/7.54.1 https://www.intel.com/content/www/us/en/download/$id.html -O- |
-                        grep -Eio -m1 "\"https://.+/(Wired_driver|prowin).*${arch_intel}(legacy)?\.(zip|exe)\"" | tr -d '"' | grep .
+                    get_intel_download_url "$id" "(Wired_driver|prowin).*${arch_intel}(legacy)?\.(zip|exe)"
                     ;;
                 esac ;;
             esac
@@ -6709,8 +6754,7 @@ EOF
                 cp_drivers $drv/virtio -ipath "*/$virtio_sys/$arch/*" "$@"
             fi
         else
-            # coreutils 的 cp mv rm 才有 -v 参数
-            apk add 7zip file coreutils
+            apk add 7zip file
             download $baseurl/$dir/virtio-win-gt-$arch_xdd.msi $drv/virtio.msi
             match="FILE_*_${virtio_sys}_${arch}*"
             7z x $drv/virtio.msi -o$drv/virtio -i!$match -y -bb1
@@ -6960,7 +7004,91 @@ EOF
         cp_drivers $drv/azure
     }
 
+    # vpci
+    add_driver_vpci() {
+        info "Add drivers: vpci"
+
+        mount_iso_install_wim_to /wim-tmp
+
+        # 检查 install.wim 镜像是否有 vpci 驱动
+        if vpci_sys=$(find_file_ignore_case /wim-tmp/Windows/System32/drivers/vpci.sys) &&
+            wvpci_inf=$(find_file_ignore_case /wim-tmp/Windows/INF/wvpci.inf); then
+
+            # 注册表文件
+            from_system_hive="$(find_file_ignore_case /wim-tmp/Windows/System32/config/SYSTEM)"
+            from_software_hive="$(find_file_ignore_case /wim-tmp/Windows/System32/config/SOFTWARE)"
+            to_system_hive="$(find_file_ignore_case /wim/Windows/System32/config/SYSTEM)"
+            to_software_hive="$(find_file_ignore_case /wim/Windows/System32/config/SOFTWARE)"
+
+            # TODO: alpine 3.24 发布后删除
+            # hivex-perl 要从 edge/community 仓库下载
+            alpine_mirror=$(grep '^http.*/main$' /etc/apk/repositories | sed 's,/[^/]*/main$,,' | head -1)
+            apk add --repository "$alpine_mirror/edge/community" \
+                --force-non-repository \
+                --virtual edge \
+                hivex-perl
+
+            # 获取当前生效的 wvpci.inf 文件
+            # 得到 wvpci.inf_amd64_86afbe8940682d27 这样的文件名
+            wvpci_inf_filename_with_hash=$(hivexget "$from_system_hive" 'DriverDatabase\DriverInfFiles\wvpci.inf' Active)
+
+            # .inf .sys
+            cp -fv "$vpci_sys" "$(get_path_in_correct_case /wim/Windows/System32/drivers/)"
+            cp -fv "$wvpci_inf" "$(get_path_in_correct_case /wim/Windows/INF/)"
+            cp -rfv "$(get_path_in_correct_case "/wim-tmp/Windows/System32/DriverStore/FileRepository/$wvpci_inf_filename_with_hash/")" \
+                "$(get_path_in_correct_case /wim/Windows/System32/DriverStore/FileRepository/)"
+
+            # .cat
+            apk add binutils
+            for file in "$(get_path_in_correct_case '/wim-tmp/Windows/System32/CatRoot/{F750E6C3-38EE-11D1-85E5-00C04FC295EE}/')"*; do
+                if strings -e l "$file" | grep -Fiq vpci.sys; then
+                    cp -fv "$file" "$(get_path_in_correct_case '/wim/Windows/System32/CatRoot/{F750E6C3-38EE-11D1-85E5-00C04FC295EE}/')"
+                fi
+            done
+            apk del binutils
+
+            mkdir -p "$drv/vpci"
+
+            # SOFTWARE
+            reg=$drv/vpci/software.reg
+            # shellcheck disable=SC2043
+            for key in \
+                "Microsoft\Windows\CurrentVersion\Setup\PnpLockdownFiles\%SystemRoot%/System32/drivers/vpci.sys"; do
+                hivexregedit --export "$from_software_hive" "$key" >>"$reg"
+            done
+            hivexregedit --merge "$to_software_hive" "$reg"
+
+            # SYSTEM
+            # 理论上要从 HKEY_LOCAL_MACHINE\SYSTEM\Select 的 Current/Default 获取 ControlSet 序号
+            reg=$drv/vpci/system.reg
+            for key in \
+                "ControlSet001\Services\EventLog\System\vpci" \
+                "ControlSet001\Services\vpci" \
+                "DriverDatabase\DeviceIds\VMBUS\{44C4F61D-4444-4400-9D52-802E27EDE19F}" \
+                "DriverDatabase\DriverInfFiles\wvpci.inf" \
+                "DriverDatabase\DriverPackages\\$wvpci_inf_filename_with_hash"; do
+                hivexregedit --export "$from_system_hive" "$key" >>"$reg"
+            done
+            # 这个注册表位置用 Tag 记录着驱动加载的顺序
+            # HKEY_LOCAL_MACHINE\System\ControlSet001\Control\GroupOrderList 的 System Bus Extender
+            # 因此要删除 vpci 的 tag，避免 tag 跟其他驱动重复，而导致错误
+            cat <<EOF >>"$reg"
+[\ControlSet001\Services\vpci]
+"Tag"=-
+EOF
+            hivexregedit --merge "$to_system_hive" "$reg"
+
+            apk del edge
+        else
+            error_and_exit "vpci driver not found."
+        fi
+
+        wimunmount /wim-tmp
+    }
+
     add_driver_vmd() {
+        info "Add drivers: VMD"
+
         # RST v20 不支持 11代 PCI\VEN_8086&DEV_9A0B
         support_v19=false
         support_v20=false
@@ -6978,18 +7106,16 @@ EOF
             fi
         done
 
-        local page=
+        local id
         if $support_v20 && [ "$build_ver" -ge 19041 ]; then
-            page=https://www.intel.com/content/www/us/en/download/849936.html
+            id=849936
         elif $support_v19 && [ "$build_ver" -ge 15063 ]; then
-            page=https://www.intel.com/content/www/us/en/download/849933.html
+            id=849933
         fi
 
-        if [ -n "$page" ]; then
-            # intel 禁止了 wget 下载网页
+        if [ -n "$id" ]; then
             local url
-            url=$(wget -U curl/7.54.1 "$page" -O- |
-                grep -Eio -m1 "\"https://.+/SetupRST\.exe\"" | tr -d '"' | grep .)
+            url=$(get_intel_download_url "$id" "SetupRST\.exe")
 
             # 注意 intel 禁止了 aria2 下载
             download $url $drv/SetupRST.exe
@@ -7337,32 +7463,25 @@ get_ubuntu_kernel_flavor() {
     # https://github.com/systemd/systemd/blob/main/src/basic/virt.c
     # https://github.com/canonical/cloud-init/blob/main/tools/ds-identify
     # http://git.annexia.org/?p=virt-what.git;a=blob;f=virt-what.in;hb=HEAD
-    if [ "$releasever" = 16.04 ]; then
+
+    # 这里有坑
+    # $(get_cloud_vendor) 调用了 cache_dmi_and_virt
+    # 但是 $(get_cloud_vendor) 运行在 subshell 里面
+    # subshell 运行结束后里面的变量就消失了
+    # 因此先运行 cache_dmi_and_virt
+    cache_dmi_and_virt
+    vendor="$(get_cloud_vendor)"
+    case "$vendor" in
+    aws | gcp | oracle | azure | ibm) echo $vendor ;;
+    *)
+        is_ubuntu_lts && suffix=-hwe-$releasever || suffix=
         if is_virt; then
-            echo virtual-hwe-$releasever
+            echo virtual$suffix
         else
-            echo generic-hwe-$releasever
+            echo generic$suffix
         fi
-    else
-        # 这里有坑
-        # $(get_cloud_vendor) 调用了 cache_dmi_and_virt
-        # 但是 $(get_cloud_vendor) 运行在 subshell 里面
-        # subshell 运行结束后里面的变量就消失了
-        # 因此先运行 cache_dmi_and_virt
-        cache_dmi_and_virt
-        vendor="$(get_cloud_vendor)"
-        case "$vendor" in
-        aws | gcp | oracle | azure | ibm) echo $vendor ;;
-        *)
-            is_ubuntu_lts && suffix=-hwe-$releasever || suffix=
-            if is_virt; then
-                echo virtual$suffix
-            else
-                echo generic$suffix
-            fi
-            ;;
-        esac
-    fi
+        ;;
+    esac
 }
 
 install_redhat_ubuntu() {

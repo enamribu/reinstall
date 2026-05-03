@@ -51,13 +51,13 @@ The system requirements for the target system are as follows:
 | <img width="16" height="16" src="https://www.alpinelinux.org/alpine-logo.ico" /> Alpine                                                                                                                                                                                                                                                                                | 3.20, 3.21, 3.22, 3.23                | 256 MB    | 1 GB             |
 | <img width="16" height="16" src="https://www.debian.org/favicon.ico" /> Debian                                                                                                                                                                                                                                                                                         | 9, 10, 11, 12, 13                     | 256 MB    | 1 ~ 1.5 GB ^     |
 | <img width="16" height="16" src="https://github.com/bin456789/reinstall/assets/7548515/f74b3d5b-085f-4df3-bcc9-8a9bd80bb16d" /> Kali                                                                                                                                                                                                                                   | Rolling                               | 256 MB    | 1 ~ 1.5 GB ^     |
-| <img width="16" height="16" src="https://documentation.ubuntu.com/server/_static/favicon.png" /> Ubuntu                                                                                                                                                                                                                                                                | 16.04 LTS - 24.04 LTS, 25.10          | 512 MB \* | 2 GB             |
+| <img width="16" height="16" src="https://documentation.ubuntu.com/server/_static/favicon.png" /> Ubuntu                                                                                                                                                                                                                                                                | 18.04 LTS - 26.04 LTS                 | 512 MB \* | 2 GB             |
 | <img width="16" height="16" src="https://img.alicdn.com/imgextra/i1/O1CN01oJnJZg1yK4RzI4Rx2_!!6000000006559-2-tps-118-118.png" /> Anolis                                                                                                                                                                                                                               | 7, 8, 23                              | 512 MB \* | 5 GB             |
 | <img width="16" height="16" src="https://www.redhat.com/favicon.ico" /> RHEL &nbsp;<img width="16" height="16" src="https://almalinux.org/fav/favicon.ico" /> AlmaLinux &nbsp;<img width="16" height="16" src="https://rockylinux.org/favicon.png" /> Rocky &nbsp;<img width="16" height="16" src="https://www.oracle.com/asset/web/favicons/favicon-32.png" /> Oracle | 8, 9, 10                              | 512 MB \* | 5 GB             |
 | <img width="16" height="16" src="https://opencloudos.org/qq.ico" /> OpenCloudOS                                                                                                                                                                                                                                                                                        | 8, 9, Stream 23                       | 512 MB \* | 5 GB             |
 | <img width="16" height="16" src="https://www.centos.org/assets/icons/favicon.svg" /> CentOS Stream                                                                                                                                                                                                                                                                     | 9, 10                                 | 512 MB \* | 5 GB             |
-| <img width="16" height="16" src="https://fedoraproject.org/favicon.ico" /> Fedora                                                                                                                                                                                                                                                                                      | 42, 43                                | 512 MB \* | 5 GB             |
-| <img width="16" height="16" src="https://www.openeuler.org/favicon.ico" /> openEuler                                                                                                                                                                                                                                                                                   | 20.03 LTS - 24.03 LTS, 25.09          | 512 MB \* | 5 GB             |
+| <img width="16" height="16" src="https://fedoraproject.org/favicon.ico" /> Fedora                                                                                                                                                                                                                                                                                      | 43, 44                                | 512 MB \* | 5 GB             |
+| <img width="16" height="16" src="https://www.openeuler.org/favicon.ico" /> openEuler                                                                                                                                                                                                                                                                                   | 20.03 LTS - 24.03 LTS                 | 512 MB \* | 5 GB             |
 | <img width="16" height="16" src="https://static.opensuse.org/favicon.ico" /> openSUSE                                                                                                                                                                                                                                                                                  | Leap 15.6, 16.0, Tumbleweed (Rolling) | 512 MB \* | 5 GB             |
 | <img width="16" height="16" src="https://nixos.org/favicon.svg" /> NixOS                                                                                                                                                                                                                                                                                               | 25.11                                 | 512 MB    | 5 GB             |
 | <img width="16" height="16" src="https://archlinux.org/static/favicon.png" /> Arch                                                                                                                                                                                                                                                                                     | Rolling                               | 512 MB    | 5 GB             |
@@ -149,7 +149,7 @@ certutil -urlcache -f -split https://cnb.cool/bin456789/reinstall/-/git/raw/main
 
 - Username `root`. The script prompts for a password. If left blank, a random one is generated.
 - When installing the latest version, the version number does not need to be specified.
-- Maximizes disk space usage: no boot partition (except for Fedora) and no swap partition.
+- Maximizes disk space utilization: no boot or swap partitions.
 - Automatically selects different optimized kernels based on machine type, such as `Cloud` or `HWE` kernels.
 - When installing Red Hat, you must provide the `qcow2` image link obtained from <https://access.redhat.com/downloads/content/rhel>. You can also install `qcow2` of other RHEL-based OS, such as `Alibaba Cloud Linux` and `TencentOS Server`.
 - After reinstallation, if you need to change the SSH port or switch to key-based login, make sure to also modify the files inside `/etc/ssh/sshd_config.d/`.
@@ -163,12 +163,12 @@ bash reinstall.sh anolis      7|8|23
                   centos      9|10
                   fnos        1
                   nixos       25.11
-                  fedora      42|43
+                  fedora      43|44
                   debian      9|10|11|12|13
+                  openeuler   20.03|22.03|24.03
                   alpine      3.20|3.21|3.22|3.23
                   opensuse    15.6|16.0|tumbleweed
-                  openeuler   20.03|22.03|24.03|25.09
-                  ubuntu      16.04|18.04|20.04|22.04|24.04|25.10 [--minimal]
+                  ubuntu      18.04|20.04|22.04|24.04|26.04 [--minimal]
                   kali
                   arch
                   gentoo
@@ -331,7 +331,7 @@ bash reinstall.sh netboot.xyz
 - If remote login fails, try using the username `.\administrator`.
 - The machine with a static IP will automatically configure the IP. It may take a few minutes to take effect on the first boot.
 - Supports ISO images in any language.
-- Supports bypassing Windows 11 hardware requirements.
+- Automatically bypassing Windows 11 hardware requirements.
 
 #### Supported Systems
 
@@ -582,12 +582,14 @@ bash reinstall.sh reset
 
 According to the Law of Bug Conservation, fixing old bugs often introduces new ones.
 
-If a new bug occurs, try using an older version to see if it works.
+If a bug occurs, try using an older version to see if it works.
 
 Go to <https://github.com/bin456789/reinstall/commits/main> and find the old version’s `commit_id` on the right side.
 
+Replace `xxxxxxxx` in the script below with the `commit_id` of an older version and run the script.
+
 ```bash
-commit_id=xxxxxxx
+commit_id=xxxxxxxx
 curl -O https://raw.githubusercontent.com/bin456789/reinstall/$commit_id/reinstall.sh || wget -O ${_##*/} $_
 sed -i "/^confhome.*main$/s/main/$commit_id/" reinstall.sh
 bash reinstall.sh ...
@@ -598,6 +600,7 @@ bash reinstall.sh ...
 1. Fork this repository.
 2. Modify the `confhome` and `confhome_cn` at the beginning of `reinstall.sh` and `reinstall.bat`.
 3. Make changes to the other code.
+4. Download and run your `reinstall.sh` or `reinstall.bat`."
 
 ## Thanks
 

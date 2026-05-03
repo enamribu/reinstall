@@ -51,13 +51,13 @@
 | <img width="16" height="16" src="https://www.alpinelinux.org/alpine-logo.ico" /> Alpine                                                                                                                                                                                                                                                                                | 3.20, 3.21, 3.22, 3.23                | 256 MB    | 1 GB         |
 | <img width="16" height="16" src="https://www.debian.org/favicon.ico" /> Debian                                                                                                                                                                                                                                                                                         | 9, 10, 11, 12, 13                     | 256 MB    | 1 ~ 1.5 GB ^ |
 | <img width="16" height="16" src="https://github.com/bin456789/reinstall/assets/7548515/f74b3d5b-085f-4df3-bcc9-8a9bd80bb16d" /> Kali                                                                                                                                                                                                                                   | 滚动                                  | 256 MB    | 1 ~ 1.5 GB ^ |
-| <img width="16" height="16" src="https://documentation.ubuntu.com/server/_static/favicon.png" /> Ubuntu                                                                                                                                                                                                                                                                | 16.04 LTS - 24.04 LTS, 25.10          | 512 MB \* | 2 GB         |
+| <img width="16" height="16" src="https://documentation.ubuntu.com/server/_static/favicon.png" /> Ubuntu                                                                                                                                                                                                                                                                | 18.04 LTS - 26.04 LTS                 | 512 MB \* | 2 GB         |
 | <img width="16" height="16" src="https://img.alicdn.com/imgextra/i1/O1CN01oJnJZg1yK4RzI4Rx2_!!6000000006559-2-tps-118-118.png" /> Anolis                                                                                                                                                                                                                               | 7, 8, 23                              | 512 MB \* | 5 GB         |
 | <img width="16" height="16" src="https://www.redhat.com/favicon.ico" /> RHEL &nbsp;<img width="16" height="16" src="https://almalinux.org/fav/favicon.ico" /> AlmaLinux &nbsp;<img width="16" height="16" src="https://rockylinux.org/favicon.png" /> Rocky &nbsp;<img width="16" height="16" src="https://www.oracle.com/asset/web/favicons/favicon-32.png" /> Oracle | 8, 9, 10                              | 512 MB \* | 5 GB         |
 | <img width="16" height="16" src="https://opencloudos.org/qq.ico" /> OpenCloudOS                                                                                                                                                                                                                                                                                        | 8, 9, Stream 23                       | 512 MB \* | 5 GB         |
 | <img width="16" height="16" src="https://www.centos.org/assets/icons/favicon.svg" /> CentOS Stream                                                                                                                                                                                                                                                                     | 9, 10                                 | 512 MB \* | 5 GB         |
-| <img width="16" height="16" src="https://fedoraproject.org/favicon.ico" /> Fedora                                                                                                                                                                                                                                                                                      | 42, 43                                | 512 MB \* | 5 GB         |
-| <img width="16" height="16" src="https://www.openeuler.org/favicon.ico" /> openEuler                                                                                                                                                                                                                                                                                   | 20.03 LTS - 24.03 LTS, 25.09          | 512 MB \* | 5 GB         |
+| <img width="16" height="16" src="https://fedoraproject.org/favicon.ico" /> Fedora                                                                                                                                                                                                                                                                                      | 43, 44                                | 512 MB \* | 5 GB         |
+| <img width="16" height="16" src="https://www.openeuler.org/favicon.ico" /> openEuler                                                                                                                                                                                                                                                                                   | 20.03 LTS - 24.03 LTS                 | 512 MB \* | 5 GB         |
 | <img width="16" height="16" src="https://static.opensuse.org/favicon.ico" /> openSUSE                                                                                                                                                                                                                                                                                  | Leap 15.6, 16.0, Tumbleweed (滚动)    | 512 MB \* | 5 GB         |
 | <img width="16" height="16" src="https://nixos.org/favicon.svg" /> NixOS                                                                                                                                                                                                                                                                                               | 25.11                                 | 512 MB    | 5 GB         |
 | <img width="16" height="16" src="https://archlinux.org/static/favicon.png" /> Arch                                                                                                                                                                                                                                                                                     | 滚动                                  | 512 MB    | 5 GB         |
@@ -149,7 +149,7 @@ certutil -urlcache -f -split https://cnb.cool/bin456789/reinstall/-/git/raw/main
 
 - 用户名为 `root`，脚本会提示输入密码，不输入则使用随机密码
 - 安装最新版可不输入版本号
-- 最大化利用磁盘空间：不含 boot 分区（Fedora 例外），不含 swap 分区
+- 最大化利用磁盘空间：不含 boot 和 swap 分区
 - 自动根据机器类型选择不同的优化内核，例如 `Cloud`、`HWE` 内核
 - 安装 Red Hat 时需填写 <https://access.redhat.com/downloads/content/rhel> 得到的 `qcow2` 镜像链接，也可以安装其它类 RHEL 系统的 `qcow2`，例如 `Alibaba Cloud Linux` 和 `TencentOS Server`
 - 重装后如需修改 SSH 端口或者改成密钥登录，注意还要修改 `/etc/ssh/sshd_config.d/` 里面的文件
@@ -163,12 +163,12 @@ bash reinstall.sh anolis      7|8|23
                   centos      9|10
                   fnos        1
                   nixos       25.11
-                  fedora      42|43
+                  fedora      43|44
                   debian      9|10|11|12|13
+                  openeuler   20.03|22.03|24.03
                   alpine      3.20|3.21|3.22|3.23
                   opensuse    15.6|16.0|tumbleweed
-                  openeuler   20.03|22.03|24.03|25.09
-                  ubuntu      16.04|18.04|20.04|22.04|24.04|25.10 [--minimal]
+                  ubuntu      18.04|20.04|22.04|24.04|26.04 [--minimal]
                   kali
                   arch
                   gentoo
@@ -331,7 +331,7 @@ bash reinstall.sh netboot.xyz
 - 如果远程登录失败，可以尝试使用用户名 `.\administrator`
 - 静态机器会自动配置好 IP，可能首次开机几分钟后才生效
 - 支持任意语言的 ISO
-- 支持绕过 Windows 11 硬件限制
+- 自动绕过 Windows 11 硬件限制
 
 #### 支持的系统
 
@@ -582,12 +582,14 @@ bash reinstall.sh reset
 
 根据 Bug 守恒定律，修复旧 Bug 的同时会引入新的 Bug
 
-如果遇到新的 Bug，可以试下旧版本是否正常
+如果脚本出现问题，可以试下旧版本是否正常
 
 从 <https://github.com/bin456789/reinstall/commits/main> 右侧找到旧版本的 `commit_id`
 
+将下面脚本的 `xxxxxxxx` 替换成旧版本的 `commit_id` 并运行脚本
+
 ```bash
-commit_id=xxxxxxx
+commit_id=xxxxxxxx
 curl -O https://raw.githubusercontent.com/bin456789/reinstall/$commit_id/reinstall.sh || wget -O ${_##*/} $_
 sed -i "/^confhome.*main$/s/main/$commit_id/" reinstall.sh
 bash reinstall.sh ...
@@ -598,6 +600,7 @@ bash reinstall.sh ...
 1. Fork 本仓库
 2. 修改 `reinstall.sh` 和 `reinstall.bat` 开头的 `confhome` 和 `confhome_cn`
 3. 修改其它代码
+4. 下载并运行你的 `reinstall.sh` 或 `reinstall.bat`
 
 ## 感谢
 
