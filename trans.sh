@@ -6726,10 +6726,10 @@ EOF
 
         case "$nt_ver" in
         6.0 | 6.1) $support_sha256 &&
-            dir=virtio-win-0.1.285-1 ||
-            dir=virtio-win-0.1.285-1 ;;        # vista|w7|2k8|2k8R2
-        6.2 | 6.3) dir=virtio-win-0.1.285-1 ;; # w8|w8.1|2k12|2k12R2
-        *) dir=virtio-win-0.1.285-1 ;;
+            dir=virtio-win-0.1.173-9 ||
+            dir=virtio-win-0.1.173-9 ;;        # vista|w7|2k8|2k8R2
+        6.2 | 6.3) dir=virtio-win-0.1.173-9 ;; # w8|w8.1|2k12|2k12R2
+        *) dir=virtio-win-0.1.173-9 ;;
         esac
 
         # vista|w7|2k8|2k8R2|arm64 要从 iso 获取驱动
