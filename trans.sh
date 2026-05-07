@@ -6757,13 +6757,6 @@ EOF
                 grep -E '^  Location: ' | grep -Ewo -m1 'archive-virtio/virtio-win-.+$')
             # dir=stable-virtio
             ;;
-        *)
-            # 先获取最新版本号，再下载
-            # 用 stable-virtio 的话国内镜像下载的可能是缓存的旧版
-            dir=$(wget --spider -S "$baseurl/stable-virtio" 2>&1 >/dev/null |
-                grep -E '^  Location: ' | grep -Ewo -m1 'archive-virtio/virtio-win-.+$')
-            # dir=stable-virtio
-            ;;
         esac
 
         # 如果 dir 包含数字，则是从具体版本号文件夹下载，文件不会更新，可以使用国内镜像
