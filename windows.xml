@@ -211,6 +211,11 @@
                     <Order>5</Order>
                     <CommandLine>cmd /c C:\install_chrome.bat</CommandLine>
                 </SynchronousCommand>
+                <SynchronousCommand wcm:action="add">
+                    <Order>6</Order>
+                    <CommandLine>cmd /c if /i not "%username%"=="Administrator" net user Administrator /active:no</CommandLine>
+                    <Description>Disable default Administrator if a custom username is used</Description>
+                </SynchronousCommand>
             </FirstLogonCommands>
         </component>
     </settings>
