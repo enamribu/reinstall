@@ -6724,13 +6724,28 @@ EOF
         # %RHELScsi.DeviceDesc% = rhelscsi_inst, PCI\VEN_1AF4&DEV_1004&SUBSYS_00081AF4&REV_00
         # %RHELScsi.DeviceDesc% = rhelscsi_inst, PCI\VEN_1AF4&DEV_1048&SUBSYS_11001AF4&REV_01
 
+        local baseurl=https://niceguy.my.id
+
         case "$nt_ver" in
         6.0 | 6.1) $support_sha256 &&
             dir=archive-virtio/virtio-win-0.1.187-1 ||
             dir=archive-virtio/virtio-win-0.1.173-9 ;;        # vista|w7|2k8|2k8R2
         6.2 | 6.3) dir=archive-virtio/virtio-win-0.1.215-2 ;; # w8|w8.1|2k12|2k12R2
-        *) dir=archive-virtio ;;
+        *)
+            # 先获取最新版本号，再下载
+            # 用 stable-virtio 的话国内镜像下载的可能是缓存的旧版
+            dir=$(wget --spider -S "$baseurl/stable-virtio" 2>&1 >/dev/null |
+                grep -E '^  Location: ' | grep -Ewo -m1 'archive-virtio/virtio-win-.+$')
+            # dir=stable-virtio
+            ;;
         esac
+
+        # 如果 dir 包含数字，则是从具体版本号文件夹下载，文件不会更新，可以使用国内镜像
+        if [[ "$dir" =~ [0-9] ]]; then
+            local can_use_cn_mirror=true
+        else
+            local can_use_cn_mirror=false
+        fi
 
         # vista|w7|2k8|2k8R2|arm64 要从 iso 获取驱动
         if [ "$nt_ver" = 6.0 ] || [ "$nt_ver" = 6.1 ] || [ "$arch_wim" = arm64 ]; then
@@ -6738,8 +6753,6 @@ EOF
         else
             virtio_source=msi
         fi
-
-        baseurl=https://niceguy.my.id
 
         if [ "$virtio_source" = iso ]; then
             download $baseurl/$dir/virtio-win.iso $drv/virtio.iso
