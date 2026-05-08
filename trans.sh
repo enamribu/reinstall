@@ -174,9 +174,8 @@ is_magnet_link() {
 }
 
 download() {
-    local url=$1
-    local path=$2
-    local can_use_cn_mirror=${3:-false}
+    url=$1
+    path=$2
 
     # 有ipv4地址无ipv4网关的情况下，aria2可能会用ipv4下载，而不是ipv6
     # axel 在 lightsail 上会占用大量cpu
@@ -215,18 +214,11 @@ download() {
 
     # -o 设置 http 下载文件名
     # -O 设置 bt 首个文件的文件名
-    set -- \
+    aria2c "$url" \
         -d "$(dirname "$path")" \
         -o "$(basename "$path")" \
         -O "1=$(basename "$path")" \
         -U curl/7.54.1
-
-    if ! aria2c "$url" "$@" &&
-        ! { $can_use_cn_mirror && is_in_china && is_any_ipv4_has_internet &&
-            url_cn=https://files.m.daocloud.io/$(echo "$url" | sed -Ei 's,^https?://,,') &&
-            aria2c "$url_cn" "$@"; }; then
-        error_and_exit "Failed to download $url"
-    fi
 
     # opensuse 官方镜像支持 metalink
     # aira2 无法重命名用 metalink 下载的文件
@@ -582,10 +574,6 @@ get_password_linux_sha512() {
 
 get_password_windows_administrator_base64() {
     get_config password-windows-administrator-base64
-}
-
-get_password_windows_user_base64() {
-    get_config password-windows-user-base64
 }
 
 get_password_plaintext() {
@@ -2248,8 +2236,10 @@ EOF
         rm -rf $os_dir/var/db/repos/gentoo
         chroot $os_dir emerge --sync
 
-        # https://wiki.gentoo.org/wiki/Handbook:AMD64/Installation/Tools#Filesystem_tools
-        chroot $os_dir emerge sys-block/io-scheduler-udev-rules
+        if [ "$(uname -m)" = x86_64 ]; then
+            # https://packages.gentoo.org/packages/sys-block/io-scheduler-udev-rules
+            chroot $os_dir emerge sys-block/io-scheduler-udev-rules
+        fi
 
         if is_efi; then
             chroot $os_dir emerge sys-fs/dosfstools
@@ -2261,18 +2251,10 @@ EOF
         fi
 
         # 安装 grub + 内核
+        # TODO: 先判断是否有 binpkg，有的话不修改 GRUB_PLATFORMS
         is_efi && grub_platforms="efi-64" || grub_platforms="pc"
         echo GRUB_PLATFORMS=\"$grub_platforms\" >>$os_dir/etc/portage/make.conf
         echo "sys-kernel/installkernel dracut grub" >$os_dir/etc/portage/package.use/installkernel
-
-        # 要设置 root=UUID=xxxx，否则 dracut 会报错
-        # 要注意 root=UUID=xxxx 头尾有空格
-        # https://wiki.gentoo.org/wiki/Installkernel#Install_chroot_check
-        # https://wiki.gentoo.org/wiki/Handbook:AMD64/Installation/Kernel#Chroot_detection
-        uuid=$(chroot $os_dir findmnt -rno UUID /)
-        mkdir -p $os_dir/etc/dracut.conf.d
-        echo "kernel_cmdline=\" root=UUID=$uuid \"" >$os_dir/etc/dracut.conf.d/00-installkernel.conf
-
         chroot $os_dir emerge sys-kernel/gentoo-kernel-bin
     }
 
@@ -3886,7 +3868,6 @@ EOF
         is_password_plaintext && sed -i 's/enforce=none/enforce=everyone/' $os_dir/etc/security/passwdqc.conf
 
         # 下载仓库，选择 profile
-        # https://github.com/gentoo/gentoo/blob/master/profiles/profiles.desc
         chroot $os_dir emerge-webrsync
         profile=$(chroot $os_dir eselect profile list | grep stable | grep systemd |
             awk '{print length($2), $2}' | sort -n | head -1 | awk '{print $2}')
@@ -6430,7 +6411,7 @@ install_windows() {
         )
 
         # 注意 intel 禁止了 aria2 下载
-        download "$url" $drv/intel.zip true
+        download "$url" $drv/intel.zip
 
         # inf 可能是 UTF-16 LE？因此用 rg 搜索
         # 用 busybox unzip 解压 win10 驱动时，路径和文件名会粘在一起
@@ -6761,7 +6742,7 @@ EOF
         baseurl=https://niceguy.my.id
 
         if [ "$virtio_source" = iso ]; then
-            download $baseurl/$dir/virtio-win.iso $drv/virtio.iso $can_use_cn_mirror
+            download $baseurl/$dir/virtio-win.iso $drv/virtio.iso
             mkdir -p $drv/virtio
             mount -o ro $drv/virtio.iso $drv/virtio
 
@@ -6774,7 +6755,7 @@ EOF
             fi
         else
             apk add 7zip file
-            download $baseurl/$dir/virtio-win-gt-$arch_xdd.msi $drv/virtio.msi $can_use_cn_mirror
+            download $baseurl/$dir/virtio-win-gt-$arch_xdd.msi $drv/virtio.msi
             match="FILE_*_${virtio_sys}_${arch}*"
             7z x $drv/virtio.msi -o$drv/virtio -i!$match -y -bb1
 
@@ -6827,7 +6808,7 @@ EOF
         # https://mirrors.tencent.com/install/cts/windows/Drivers.zip
 
         apk add 7zip
-        download https://mirrors.tencent.com/install/windows/virtio_64_1.0.9.exe $drv/virtio.exe true
+        download https://mirrors.tencent.com/install/windows/virtio_64_1.0.9.exe $drv/virtio.exe
         exclude='$*' # 排除 $PLUGINSDIR
         override=u   # A(u)to rename all
         7z x $drv/virtio.exe -o$drv/qcloud/ -ao$override -x!$exclude
@@ -7137,7 +7118,7 @@ EOF
             url=$(get_intel_download_url "$id" "SetupRST\.exe")
 
             # 注意 intel 禁止了 aria2 下载
-            download $url $drv/SetupRST.exe true
+            download $url $drv/SetupRST.exe
             apk add 7zip
             7z x $drv/SetupRST.exe -o$drv/SetupRST -i!.text
             7z x $drv/SetupRST/.text -o$drv/vmd
@@ -7166,43 +7147,19 @@ EOF
     }
 
     # 修改应答文件
-    apk add xmlstarlet
     download $confhome/windows.xml /tmp/autounattend.xml
     locale=$(get_selected_image_prop 'Default Language')
     use_default_rdp_port=$(is_need_change_rdp_port && echo false || echo true)
-
+    password_base64=$(get_password_windows_administrator_base64)
     # 7601.24214.180801-1700.win7sp1_ldr_escrow_CLIENT_ULTIMATE_x64FRE_en-us.iso Image Name 为空
     # 将 xml Image Name 的值设为空可以正常安装
     sed -i \
         -e "s|%arch%|$arch|" \
         -e "s|%image_name%|$image_name|" \
         -e "s|%locale%|$locale|" \
+        -e "s|%administrator_password%|$password_base64|" \
         -e "s|%use_default_rdp_port%|$use_default_rdp_port|" \
         /tmp/autounattend.xml
-
-    # 账号密码
-    if [ -n "$username" ]; then
-        # 普通账号
-        password_base64=$(get_password_windows_user_base64)
-        xmlstarlet ed -L -N x="urn:schemas-microsoft-com:unattend" \
-            -d "//x:AdministratorPassword" \
-            /tmp/autounattend.xml
-        sed -i \
-            -e "s|%enable_administrator%|0|" \
-            -e "s|%user_username%|$username|" \
-            -e "s|%user_password%|$password_base64|" \
-            /tmp/autounattend.xml
-    else
-        # Administrator
-        password_base64=$(get_password_windows_administrator_base64)
-        xmlstarlet ed -L -N x="urn:schemas-microsoft-com:unattend" \
-            -d "//x:LocalAccounts" \
-            /tmp/autounattend.xml
-        sed -i \
-            -e "s|%enable_administrator%|1|" \
-            -e "s|%administrator_password%|$password_base64|" \
-            /tmp/autounattend.xml
-    fi
 
     # 修改应答文件，分区配置
     if is_efi; then
@@ -7290,12 +7247,12 @@ EOF
     wim_windows_xml=$(get_path_in_correct_case /wim/windows.xml)
     wim_setup_exe=$(get_path_in_correct_case /wim/setup.exe)
 
+    apk add xmlstarlet
     xmlstarlet ed -d '//comment()' /tmp/autounattend.xml >$wim_autounattend_xml
     unix2dos $wim_autounattend_xml
     info "autounattend.xml"
     # 查看最终文件，并屏蔽密码
     xmlstarlet ed -d '//*[name()="AdministratorPassword" or name()="Password"]' $wim_autounattend_xml | cat -n
-
     apk del xmlstarlet
 
     # 避免无参数运行 setup.exe 时自动安装

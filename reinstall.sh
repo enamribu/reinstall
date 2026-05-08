@@ -2342,59 +2342,6 @@ trim() {
     sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
 }
 
-assert_username_valid() {
-    if ! msg=$(is_username_valid); then
-        error_and_exit "$msg"
-    fi
-}
-
-is_username_valid() {
-    # https://learn.microsoft.com/windows-hardware/customize/desktop/unattend/microsoft-windows-shell-setup-useraccounts-localaccounts-localaccount-name
-    # 不能为 none [ ] / \ : | < > + = ; , ? * % @
-
-    # 账号为空，则使用 Administrator
-    if [ -z "$username" ]; then
-        echo "Username: Will use the built-in Administrator account in ISO language."
-        return 0
-    fi
-
-    if [ "$(to_lower <<<"$username")" = none ]; then
-        echo "Username: Do not use the name \"NONE\", this is a restricted username."
-        return 1
-    fi
-
-    if grep -q '[][/\:|<>+=;,?*%@]' <<<"$username"; then
-        echo "Username: Do not use any of the following characters: / \ [ ] : | < > + = ; , ? * % @"
-        return 1
-    fi
-
-    # 如果输入以下用户名则忽略，并使用系统内置的 Administrator 账号
-    # 防止系统有两个不同语言的 Administrator 账号而造成困扰
-    for builtin_username in \
-        administrator \
-        administrador \
-        administrateur \
-        administratör \
-        администратор \
-        järjestelmänvalvoja \
-        rendszergazda; do
-        if [ "$(to_lower <<<"$username")" = "$builtin_username" ]; then
-            echo "Username: Will use the built-in Administrator account in ISO language."
-            unset username
-            return 0
-        fi
-    done
-}
-
-prompt_username() {
-    info "prompt username"
-    warn false "Leave blank to use Administrator"
-    warn false "不填写则使用 Administrator"
-    IFS= read -r -p "Username: " username
-    username="$(printf "%s" "$username" | trim)"
-    assert_username_valid
-}
-
 prompt_password() {
     info "prompt password"
     warn false "Leave blank to use a random password."
@@ -2934,20 +2881,18 @@ add_efi_entry_in_linux() {
         dev_part=$(findmnt -T "$dist_dir" -no SOURCE | grep '^/dev/')
     fi
 
-    set -- efibootmgr --create-only \
-        --disk "/dev/$(get_disk_by_part $dev_part)" \
-        --part "$(get_part_num_by_part $dev_part)" \
-        --label "$(get_entry_name)" \
-        --loader "\\EFI\\reinstall\\$basename"
-
-    if ! res=$("$@"); then
-        echo "Command: $*"
+    if ! {
+        res=$(efibootmgr --create-only \
+            --disk "/dev/$(get_disk_by_part $dev_part)" \
+            --part "$(get_part_num_by_part $dev_part)" \
+            --label "$(get_entry_name)" \
+            --loader "\\EFI\\reinstall\\$basename") &&
+            id=$(echo "$res" | grep_efi_entry | tail -1 | grep_efi_index | grep .) &&
+            efibootmgr --bootnext "$id"
+    }; then
         echo "$res"
         error_and_exit "Could not add efi entry."
     fi
-
-    id=$(echo "$res" | grep_efi_entry | tail -1 | grep_efi_index | grep .)
-    efibootmgr --bootnext "$id"
 }
 
 get_grub_efi_filename() {
@@ -3171,7 +3116,7 @@ build_extra_cmdline() {
     # https://salsa.debian.org/installer-team/rootskel/-/blob/master/src/lib/debian-installer-startup.d/S02module-params?ref_type=heads
     for key in confhome hold force_boot_mode force_cn force_old_windows_setup cloud_image main_disk \
         elts deb_mirror \
-        username ssh_port rdp_port web_port allow_ping; do
+        ssh_port rdp_port web_port allow_ping; do
         value=${!key}
         if [ -n "$value" ]; then
             is_need_quote "$value" &&
@@ -4365,7 +4310,6 @@ for o in ci installer debug minimal allow-ping force-cn help \
     img: \
     cloud-data: \
     lang: \
-    user: username: \
     passwd: password: \
     ssh-port: \
     ssh-key: public-key: \
@@ -4498,14 +4442,6 @@ while true; do
             error_and_exit "Invalid $1 value: $2"
         fi
         force_boot_mode=$2
-        shift 2
-        ;;
-    --user | --username)
-        if ! [ "$distro" = windows ]; then
-            error_and_exit "$1 is only supported for installing Windows."
-        fi
-        username="$(printf "%s" "$2" | trim)"
-        assert_username_valid
         shift 2
         ;;
     --passwd | --password)
@@ -4682,11 +4618,6 @@ done
 
 # 检查必须的参数
 verify_os_args
-
-# 用户名
-if [ "$distro" = windows ] && [ -z "$username" ]; then
-    prompt_username
-fi
 
 # 密码
 if ! is_netboot_xyz && [ -z "$ssh_keys" ] && [ -z "$password" ]; then
@@ -4967,7 +4898,7 @@ info 'info'
 echo "$distro $releasever"
 
 case "$distro" in
-windows) username=${username:-administrator} ;;
+windows) username=administrator ;;
 netboot.xyz) username= ;;
 dd | *) username=root ;;
 esac
