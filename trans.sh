@@ -576,6 +576,10 @@ get_password_windows_administrator_base64() {
     get_config password-windows-administrator-base64
 }
 
+get_password_windows_user_base64() {
+    get_config password-windows-user-base64
+}
+
 get_password_plaintext() {
     get_config password-plaintext
 }
@@ -7150,14 +7154,16 @@ EOF
     download $confhome/windows.xml /tmp/autounattend.xml
     locale=$(get_selected_image_prop 'Default Language')
     use_default_rdp_port=$(is_need_change_rdp_port && echo false || echo true)
-    password_base64=$(get_password_windows_administrator_base64)
+    administrator_password_base64=$(get_password_windows_administrator_base64)
+    autologon_password_base64=$(get_password_windows_user_base64)
     # 7601.24214.180801-1700.win7sp1_ldr_escrow_CLIENT_ULTIMATE_x64FRE_en-us.iso Image Name 为空
     # 将 xml Image Name 的值设为空可以正常安装
     sed -i \
         -e "s|%arch%|$arch|" \
         -e "s|%image_name%|$image_name|" \
         -e "s|%locale%|$locale|" \
-        -e "s|%administrator_password%|$password_base64|" \
+        -e "s|%administrator_password%|$administrator_password_base64|" \
+        -e "s|%autologon_password%|$autologon_password_base64|" \
         -e "s|%use_default_rdp_port%|$use_default_rdp_port|" \
         /tmp/autounattend.xml
 
