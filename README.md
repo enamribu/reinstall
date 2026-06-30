@@ -20,7 +20,7 @@
 - 支持 BIOS、EFI 引导，支持 ARM 服务器
 - 不含自制包，所有资源均实时从镜像源获得
 
-如果帮到你，可以请我喝奶茶。
+请我喝奶茶：
 [![Donate](https://img.shields.io/badge/Donate-30363D?style=for-the-badge&logo=GitHub-Sponsors&logoColor=#EA4AAA)](https://github.com/sponsors/bin456789)
 
 [![Sponsors](https://raw.githubusercontent.com/bin456789/sponsors/refs/heads/master/sponsors.svg)](https://github.com/sponsors/bin456789)
@@ -48,7 +48,7 @@
 
 | 系统                                                                                                                                                                                                                                                                                                                                                                   | 版本                                  | 内存      | 硬盘         |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- | --------- | ------------ |
-| <img width="16" height="16" src="https://www.alpinelinux.org/alpine-logo.ico" /> Alpine                                                                                                                                                                                                                                                                                | 3.20, 3.21, 3.22, 3.23                | 256 MB    | 1 GB         |
+| <img width="16" height="16" src="https://www.alpinelinux.org/alpine-logo.ico" /> Alpine                                                                                                                                                                                                                                                                                | 3.21, 3.22, 3.23, 3.24                | 256 MB    | 1 GB         |
 | <img width="16" height="16" src="https://www.debian.org/favicon.ico" /> Debian                                                                                                                                                                                                                                                                                         | 9, 10, 11, 12, 13                     | 256 MB    | 1 ~ 1.5 GB ^ |
 | <img width="16" height="16" src="https://github.com/bin456789/reinstall/assets/7548515/f74b3d5b-085f-4df3-bcc9-8a9bd80bb16d" /> Kali                                                                                                                                                                                                                                   | 滚动                                  | 256 MB    | 1 ~ 1.5 GB ^ |
 | <img width="16" height="16" src="https://documentation.ubuntu.com/server/_static/favicon.png" /> Ubuntu                                                                                                                                                                                                                                                                | 18.04 LTS - 26.04 LTS                 | 512 MB \* | 2 GB         |
@@ -58,12 +58,12 @@
 | <img width="16" height="16" src="https://www.centos.org/assets/icons/favicon.svg" /> CentOS Stream                                                                                                                                                                                                                                                                     | 9, 10                                 | 512 MB \* | 5 GB         |
 | <img width="16" height="16" src="https://fedoraproject.org/favicon.ico" /> Fedora                                                                                                                                                                                                                                                                                      | 43, 44                                | 512 MB \* | 5 GB         |
 | <img width="16" height="16" src="https://www.openeuler.org/favicon.ico" /> openEuler                                                                                                                                                                                                                                                                                   | 20.03 LTS - 24.03 LTS                 | 512 MB \* | 5 GB         |
-| <img width="16" height="16" src="https://static.opensuse.org/favicon.ico" /> openSUSE                                                                                                                                                                                                                                                                                  | Leap 15.6, 16.0, Tumbleweed (滚动)    | 512 MB \* | 5 GB         |
-| <img width="16" height="16" src="https://nixos.org/favicon.svg" /> NixOS                                                                                                                                                                                                                                                                                               | 25.11                                 | 512 MB    | 5 GB         |
+| <img width="16" height="16" src="https://static.opensuse.org/favicon.ico" /> openSUSE                                                                                                                                                                                                                                                                                  | Leap 16.0, Tumbleweed (滚动)          | 512 MB \* | 5 GB         |
+| <img width="16" height="16" src="https://nixos.org/favicon.svg" /> NixOS                                                                                                                                                                                                                                                                                               | 26.05                                 | 512 MB    | 5 GB         |
 | <img width="16" height="16" src="https://archlinux.org/static/favicon.png" /> Arch                                                                                                                                                                                                                                                                                     | 滚动                                  | 512 MB    | 5 GB         |
 | <img width="16" height="16" src="https://www.gentoo.org/assets/img/logo/gentoo-g.png" /> Gentoo                                                                                                                                                                                                                                                                        | 滚动                                  | 512 MB    | 5 GB         |
 | <img width="16" height="16" src="https://aosc.io/distros/aosc-os.svg" /> 安同 OS                                                                                                                                                                                                                                                                                       | 滚动                                  | 512 MB    | 5 GB         |
-| <img width="16" height="16" src="https://www.fnnas.com/favicon.ico" /> 飞牛 fnOS                                                                                                                                                                                                                                                                                       | 1                                     | 512 MB    | 8 GB         |
+| <img width="16" height="16" src="https://www.fnnas.com/favicon.ico" /> 飞牛 fnOS &nbsp;<img width="16" height="16" src="https://fygonas.com/favicon.ico" /> FygoOS                                                                                                                                                                                                     | 1                                     | 512 MB    | 8 GB         |
 | <img width="16" height="16" src="https://blogs.windows.com/wp-content/uploads/prod/2022/09/cropped-Windows11IconTransparent512-32x32.png" /> Windows (DD)                                                                                                                                                                                                              | 任何                                  | 512 MB    | 取决于镜像   |
 | <img width="16" height="16" src="https://blogs.windows.com/wp-content/uploads/prod/2022/09/cropped-Windows11IconTransparent512-32x32.png" /> Windows (ISO)                                                                                                                                                                                                             | Vista, 7, 8.x (Server 2008 - 2012 R2) | 512 MB    | 25 GB        |
 | <img width="16" height="16" src="https://blogs.windows.com/wp-content/uploads/prod/2022/09/cropped-Windows11IconTransparent512-32x32.png" /> Windows (ISO)                                                                                                                                                                                                             | 10, 11 (Server 2016 - 2025)           | 1 GB      | 25 GB        |
@@ -147,12 +147,13 @@ certutil -urlcache -f -split https://cnb.cool/bin456789/reinstall/-/git/raw/main
 >
 > 如果不小心运行了脚本，可以在重启前运行 `bash reinstall.sh reset` 取消重装
 
-- 用户名为 `root`，脚本会提示输入密码，不输入则使用随机密码
-- 安装最新版可不输入版本号
+- 脚本会提示输入用户名和密码，不输入则使用 `root` 和随机密码
+- 不输入版本号则安装最新版
 - 最大化利用磁盘空间：不含 boot 和 swap 分区
-- 自动根据机器类型选择不同的优化内核，例如 `Cloud`、`HWE` 内核
+- 自动根据机器类型和商家安装优化内核
 - 安装 Red Hat 时需填写 <https://access.redhat.com/downloads/content/rhel> 得到的 `qcow2` 镜像链接，也可以安装其它类 RHEL 系统的 `qcow2`，例如 `Alibaba Cloud Linux` 和 `TencentOS Server`
 - 重装后如需修改 SSH 端口或者改成密钥登录，注意还要修改 `/etc/ssh/sshd_config.d/` 里面的文件
+- 为了快速安装，重装时不会对新系统进行更新，请在重装后自行更新
 
 ```bash
 bash reinstall.sh anolis      7|8|23
@@ -162,12 +163,13 @@ bash reinstall.sh anolis      7|8|23
                   opencloudos 8|9|23
                   centos      9|10
                   fnos        1
-                  nixos       25.11
+                  fygoos      1
+                  nixos       26.05
                   fedora      43|44
                   debian      9|10|11|12|13
+                  opensuse    16.0|tumbleweed
                   openeuler   20.03|22.03|24.03
-                  alpine      3.20|3.21|3.22|3.23
-                  opensuse    15.6|16.0|tumbleweed
+                  alpine      3.21|3.22|3.23|3.24
                   ubuntu      18.04|20.04|22.04|24.04|26.04 [--minimal]
                   kali
                   arch
@@ -178,9 +180,10 @@ bash reinstall.sh anolis      7|8|23
 
 #### 可选参数
 
+- `--username USERNAME` 设置用户名
 - `--password PASSWORD` 设置密码
 - `--ssh-key KEY` 设置 SSH 登录公钥，[格式如下](#--ssh-key)。当使用公钥时，密码为空
-- `--ssh-port PORT` 修改 SSH 端口（安装期间观察日志用，也作用于新系统）
+- `--ssh-port PORT` 修改 SSH 端口
 - `--web-port PORT` 修改 Web 端口（安装期间观察日志用）
 - `--frpc-config PATH` 添加 frpc 内网穿透，参数填配置文件的本地路径或 HTTP 链接
 - `--hold 1` 仅重启到安装环境，不运行安装，用于 SSH 登录验证网络连通性
@@ -196,7 +199,7 @@ bash reinstall.sh anolis      7|8|23
 
 <details>
 
-<summary>实验性功能</summary>
+<summary>已弃用的功能</summary>
 
 云镜像安装 Debian
 
@@ -209,16 +212,19 @@ bash reinstall.sh debian --ci
 ISO 安装 CentOS, AlmaLinux, Rocky, Fedora
 
 - 仅支持内存大于 2G 且为动态 IP 的机器
-- 密码 `123@@@`，SSH 端口 `22`，不支持用参数修改
+- 用户名 `root`，密码 `123@@@`，SSH 端口 `22`，不支持用参数修改
 
 ```bash
 bash reinstall.sh centos --installer
+bash reinstall.sh almalinux --installer
+bash reinstall.sh rocky --installer
+bash reinstall.sh fedora --installer
 ```
 
 ISO 安装 Ubuntu
 
 - 仅支持内存大于 1G 且为动态 IP 的机器
-- 密码 `123@@@`，SSH 端口 `22`，不支持用参数修改
+- 用户名 `root`，密码 `123@@@`，SSH 端口 `22`，不支持用参数修改
 
 ```bash
 bash reinstall.sh ubuntu --installer
@@ -237,6 +243,7 @@ bash reinstall.sh ubuntu --installer
 - 支持 `raw` 和固定大小的 `vhd` 镜像。未压缩或者压缩成 `.gz` `.xz` `.zst` `.tar` `.tar.gz` `.tar.xz` `.tar.zst`
 - DD Windows 镜像时，会自动扩展系统盘，静态 IP 的机器会配置好 IP，可能首次开机几分钟后才生效
 - DD Linux 镜像时，**不会**修改镜像的任何内容
+- 脚本会提示输入用户名和密码，用于安装时 SSH 登录观察日志，不输入则使用 `root` 和随机密码
 
 ```bash
 bash reinstall.sh dd --img "https://example.com/xxx.xz"
@@ -244,10 +251,13 @@ bash reinstall.sh dd --img "https://example.com/xxx.xz"
 
 #### 可选参数
 
-- `--allow-ping` 设置 Windows 防火墙允许被 Ping (仅限 DD Windows)
-- `--rdp-port PORT` 修改 RDP 端口 (仅限 DD Windows)
+- `--username USERNAME` 设置用户名（安装期间观察日志用）
+- `--password PASSWORD` 设置密码（安装期间观察日志用）
+- `--ssh-key KEY` 设置 SSH 登录公钥（安装期间观察日志用），[格式如下](#--ssh-key)。当使用公钥时，密码为空
 - `--ssh-port PORT` 修改 SSH 端口（安装期间观察日志用）
+- `--rdp-port PORT` 修改 RDP 端口（仅限 DD Windows）
 - `--web-port PORT` 修改 Web 端口（安装期间观察日志用）
+- `--allow-ping` 设置 Windows 防火墙允许被 Ping（仅限 DD Windows）
 - `--frpc-config PATH` 添加 frpc 内网穿透（仅限 DD Windows），参数填配置文件的本地路径或 HTTP 链接
 - `--cloud-data PATH_OR_URL` 为 DD Linux 镜像注入 cloud-init NoCloud 配置（仅限 DD Linux）
 - `--hold 1` 仅重启到安装环境，不运行安装，用于 SSH 登录验证网络连通性
@@ -257,7 +267,7 @@ bash reinstall.sh dd --img "https://example.com/xxx.xz"
 >
 > `--cloud-data` 参数为本地目录或 HTTP 基础 URL，目录须包含 `user-data` 文件，`meta-data`、`network-config` 可选：
 >
-> ```
+> ```bash
 > seed/
 > ├── user-data      # 必须
 > ├── meta-data      # 可选
@@ -282,7 +292,7 @@ bash reinstall.sh dd --img "https://example.com/xxx.xz"
 ### 功能 3: 重启到 <img width="16" height="16" src="https://www.alpinelinux.org/alpine-logo.ico" /> Alpine Live OS（内存系统）
 
 - 可用 ssh 连接，进行备份/恢复硬盘、手动 DD、修改分区、手动安装 Alpine 等操作
-- 用户名为 `root`，脚本会提示输入密码，不输入则使用随机密码
+- 脚本会提示输入用户名和密码，不输入则使用 `root` 和随机密码
 
 > [!TIP]
 >
@@ -296,9 +306,10 @@ bash reinstall.sh alpine --hold 1
 
 #### 可选参数
 
+- `--username USERNAME` 设置用户名
 - `--password PASSWORD` 设置密码
-- `--ssh-port PORT` 修改 SSH 端口
 - `--ssh-key KEY` 设置 SSH 登录公钥，[格式如下](#--ssh-key)。当使用公钥时，密码为空
+- `--ssh-port PORT` 修改 SSH 端口
 - `--frpc-config PATH` 添加 frpc 内网穿透，参数填配置文件的本地路径或 HTTP 链接
 
 ### 功能 4: 重启到 <img width="16" height="16" src="https://netboot.xyz/img/favicon.ico" /> netboot.xyz
@@ -327,8 +338,9 @@ bash reinstall.sh netboot.xyz
 >
 > 如果不小心运行了脚本，可以在重启前运行 `bash reinstall.sh reset` 取消重装
 
-- 用户名为 `administrator`，脚本会提示输入密码，不输入则使用随机密码
-- 如果远程登录失败，可以尝试使用用户名 `.\administrator`
+- 脚本会提示输入用户名和密码，不输入则使用 `administrator` 和随机密码
+- 如果远程登录失败，请尝试在用户名前添加 `.\`，例如 `.\administrator`
+- 少数语言的系统管理员账号不是 `administrator` [详情](https://learn.microsoft.com/archive/technet-wiki/13813.localized-names-for-administrator-account-in-windows#list-of-languages-that-localize-the-administrator-account-name)
 - 静态机器会自动配置好 IP，可能首次开机几分钟后才生效
 - 支持任意语言的 ISO
 - 自动绕过 Windows 11 硬件限制
@@ -446,11 +458,12 @@ bash reinstall.sh windows \
 
 #### 可选参数
 
+- `--username USERNAME` 设置用户名
 - `--password PASSWORD` 设置密码
+- `--rdp-port PORT` 修改 RDP 端口
+- `--ssh-port PORT` 修改 SSH 端口（安装期间观察日志用）
+- `--web-port PORT` 修改 Web 端口（安装期间观察日志用）
 - `--allow-ping` 设置 Windows 防火墙允许被 Ping
-- `--rdp-port PORT` 更改 RDP 端口
-- `--ssh-port PORT` 修改 SSH 端口（仅安装期间观察日志用）
-- `--web-port PORT` 修改 Web 端口（仅安装期间观察日志用）
 - `--add-driver INF_OR_DIR` 添加额外驱动，填写 .inf 路径，或者 .inf 所在的文件夹
   - 需先下载驱动到当前系统
   - 可多次设置该参数以添加不同的驱动
@@ -465,7 +478,7 @@ bash reinstall.sh windows \
 - AWS ([ENA 网卡][aws-ena], [NVME 存储控制器][aws-nvme])
 - GCP ([gVNIC 网卡][gcp-gvnic], [GGA 显卡][gcp-gga])
 - Azure ([MANA 网卡][azure-mana])
-- Intel (VMD 存储控制器: [11代酷睿][intel-vmd-gen11], [12-15代酷睿][intel-vmd-gen12-to-gen15], 网卡: [7][intel-nic-7], [8.x][intel-nic-8.1], [10][intel-nic-10], [11][intel-nic-11], [2008 R2][intel-nic-7], [2012][intel-nic-2012], [2012 R2][intel-nic-2012-r2], [2016][intel-nic-2016], [2019][intel-nic-2019], [2022][intel-nic-2022], [2025][intel-nic-2025])
+- Intel (VMD 存储控制器: [11代酷睿][intel-vmd-gen11], [12-15代酷睿][intel-vmd-gen12-to-gen15], [酷睿 Ultra 3][intel-vmd-ultra3], 网卡: [7][intel-nic-7], [8.x][intel-nic-8.1], [10][intel-nic-10], [11][intel-nic-11], [2008 R2][intel-nic-7], [2012][intel-nic-2012], [2012 R2][intel-nic-2012-r2], [2016][intel-nic-2016], [2019][intel-nic-2019], [2022][intel-nic-2022], [2025][intel-nic-2025])
 
 [virtio-virtio]: https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/
 [virtio-aliyun]: https://www.alibabacloud.com/help/ecs/user-guide/install-the-virtio-driver-1
@@ -481,6 +494,7 @@ bash reinstall.sh windows \
 [azure-mana]: https://learn.microsoft.com/azure/virtual-network/accelerated-networking-mana-windows
 [intel-vmd-gen11]: https://www.intel.com/content/www/us/en/download/849933/intel-rapid-storage-technology-driver-installation-software-with-intel-optane-memory-12th-to-13th-gen-platforms.html
 [intel-vmd-gen12-to-gen15]: https://www.intel.com/content/www/us/en/download/849936/intel-rapid-storage-technology-driver-installation-software-with-intel-optane-memory-12th-to-15th-gen-platforms.html
+[intel-vmd-ultra3]: https://www.intel.com/content/www/us/en/download/920456/intel-rapid-storage-technology-driver-installation-software-for-intel-core-ultra-series-3-platforms.html
 [intel-nic-7]: https://www.intel.com/content/www/us/en/download/15590/intel-network-adapter-driver-for-windows-7-final-release.html
 [intel-nic-8.1]: https://www.intel.com/content/www/us/en/download/17479/intel-network-adapter-driver-for-windows-8-1.html
 [intel-nic-10]: https://www.intel.com/content/www/us/en/download/18293/intel-network-adapter-driver-for-windows-10.html
