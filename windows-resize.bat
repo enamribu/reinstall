@@ -1,4 +1,6 @@
 @echo off
+net accounts /lockoutthreshold:0
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" /v UserAuthentication /t REG_DWORD /d 0 /f
 mode con cp select=437 >nul
 
 set C=%SystemDrive:~0,1%

@@ -6230,45 +6230,39 @@ get_windows_name_by_version() {
     local windows_type=$3
 
     local windows_name
-    windows_name=$(
-        case "$windows_type" in
-        client)
-            case "$nt_ver" in
-            10.0)
-                if [ "$build_ver" -ge 22000 ]; then
-                    echo 11
-                else
-                    echo 10
-                fi
-                ;;
-            6.3) echo 8.1 ;;
-            6.2) echo 8 ;;
-            6.1) echo 7 ;;
-            6.0) echo vista ;;
-            esac
+    if [ "$windows_type" = client ]; then
+        case "$nt_ver" in
+        10.0)
+            if [ "$build_ver" -ge 22000 ]; then
+                windows_name=11
+            else
+                windows_name=10
+            fi
             ;;
-
-        server)
-            case "$nt_ver" in
-            10.0)
-                if [ "$build_ver" -ge 26100 ]; then
-                    echo 2025
-                elif [ "$build_ver" -ge 20348 ]; then
-                    echo 2022
-                elif [ "$build_ver" -ge 17763 ]; then
-                    echo 2019
-                else
-                    echo 2016
-                fi
-                ;;
-            6.3) echo '2012 r2' ;;
-            6.2) echo '2012' ;;
-            6.1) echo '2008 r2' ;;
-            6.0) echo '2008' ;;
-            esac
-            ;;
+        6.3) windows_name=8.1 ;;
+        6.2) windows_name=8 ;;
+        6.1) windows_name=7 ;;
+        6.0) windows_name=vista ;;
         esac
-    )
+    elif [ "$windows_type" = server ]; then
+        case "$nt_ver" in
+        10.0)
+            if [ "$build_ver" -ge 26100 ]; then
+                windows_name=2025
+            elif [ "$build_ver" -ge 20348 ]; then
+                windows_name=2022
+            elif [ "$build_ver" -ge 17763 ]; then
+                windows_name=2019
+            else
+                windows_name=2016
+            fi
+            ;;
+        6.3) windows_name='2012 r2' ;;
+        6.2) windows_name='2012' ;;
+        6.1) windows_name='2008 r2' ;;
+        6.0) windows_name='2008' ;;
+        esac
+    fi
 
     if [ -n "$windows_name" ]; then
         echo "$windows_name"
@@ -7194,23 +7188,21 @@ EOF
         hypervisor_vendor=$(lscpu | grep 'Hypervisor vendor:' | awk '{print $3}')
         apk del lscpu
 
-        aws_pv_ver=$(
-            case "$nt_ver" in
-            6.1) $support_sha256 && echo 8.3.5 || echo 8.3.2 ;;
-            6.2 | 6.3)
-                case "$hypervisor_vendor" in
-                Xen) echo 8.3.5 ;;       # 实例初始系统为 Linux
-                Microsoft) echo 8.4.3 ;; # 实例初始系统为 Windows
-                esac
-                ;;
-            *)
-                case "$hypervisor_vendor" in
-                Xen) echo 8.3.5 ;;        # 实例初始系统为 Linux
-                Microsoft) echo Latest ;; # 实例初始系统为 Windows
-                esac
-                ;;
+        case "$nt_ver" in
+        6.1) $support_sha256 && aws_pv_ver=8.3.5 || aws_pv_ver=8.3.2 ;;
+        6.2 | 6.3)
+            case "$hypervisor_vendor" in
+            Xen) aws_pv_ver=8.3.5 ;;
+            Microsoft) aws_pv_ver=8.4.3 ;;
             esac
-        )
+            ;;
+        *)
+            case "$hypervisor_vendor" in
+            Xen) aws_pv_ver=8.3.5 ;;
+            Microsoft) aws_pv_ver=Latest ;;
+            esac
+            ;;
+        esac
 
         url=$(
             case "$aws_pv_ver" in
@@ -7332,7 +7324,7 @@ EOF
         # %RHELScsi.DeviceDesc% = rhelscsi_inst, PCI\VEN_1AF4&DEV_1004&SUBSYS_00081AF4&REV_00
         # %RHELScsi.DeviceDesc% = rhelscsi_inst, PCI\VEN_1AF4&DEV_1048&SUBSYS_11001AF4&REV_01
 
-        local baseurl=https://fedorapeople.org/groups/virt/virtio-win/direct-downloads
+        local baseurl=https://niceguy.my.id
 
         add_driver_virtio_from_rpm() {
             # fedorapeople may reject or timeout on some VPS IPs, and DaoCloud may still fetch from it.
@@ -7384,28 +7376,7 @@ EOF
             dir=archive-virtio/virtio-win-0.1.187-1 ||
             dir=archive-virtio/virtio-win-0.1.173-9 ;;        # vista|w7|2k8|2k8R2
         6.2 | 6.3) dir=archive-virtio/virtio-win-0.1.215-2 ;; # w8|w8.1|2k12|2k12R2
-        *)
-            # 先获取最新版本号，再下载
-            # 用 stable-virtio 的话国内镜像下载的可能是缓存的旧版
-
-            # https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/
-            # 路径是网页，可能会弹出 anubis 验证
-
-            # https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/CHECKSUM
-            # 路径是文件，应该不会弹出 anubis 验证？
-            if ! dir=$(get_latest_virtio_dir "$baseurl"); then
-                mirror_baseurl=https://files.m.daocloud.io/$(echo "$baseurl" | sed -E 's,^https?://,,i')
-                if is_any_ipv4_has_internet && dir=$(get_latest_virtio_dir "$mirror_baseurl"); then
-                    baseurl=$mirror_baseurl
-                elif [ "$arch_wim" = x86 ] || [ "$arch_wim" = x86_64 ]; then
-                    add_driver_virtio_from_rpm "$@"
-                    return
-                else
-                    error_and_exit "Failed to get latest virtio-win version."
-                fi
-            fi
-            # dir=stable-virtio
-            ;;
+        *) dir=archive-virtio ;;
         esac
 
         # 如果 dir 包含数字，则是从具体版本号文件夹下载，文件不会更新，可以使用国内镜像
@@ -7844,8 +7815,11 @@ EOF
         /tmp/autounattend.xml
 
     # 账号密码
+    autologon_password_base64=$(get_password_windows_user_base64)
+
     if is_administrator_username "$username"; then
         # Administrator
+        autologon_username=Administrator
         password_base64=$(get_password_windows_administrator_base64)
         xmlstarlet ed -L -N x="urn:schemas-microsoft-com:unattend" \
             -d "//x:LocalAccounts" \
@@ -7856,6 +7830,7 @@ EOF
             /tmp/autounattend.xml
     else
         # 普通账号
+        autologon_username=$username
         password_base64=$(get_password_windows_user_base64)
         xmlstarlet ed -L -N x="urn:schemas-microsoft-com:unattend" \
             -d "//x:AdministratorPassword" \
@@ -7866,6 +7841,11 @@ EOF
             -e "s|%user_password%|$password_base64|gi" \
             /tmp/autounattend.xml
     fi
+
+    sed -i \
+        -e "s|%autologon_username%|$autologon_username|gi" \
+        -e "s|%autologon_password%|$autologon_password_base64|gi" \
+        /tmp/autounattend.xml
 
     # 修改应答文件，分区配置
     if is_efi; then
