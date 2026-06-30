@@ -7820,6 +7820,7 @@ EOF
     if is_administrator_username "$username"; then
         # Administrator
         autologon_username=Administrator
+        disable_administrator_command='cmd /c rem keep administrator enabled'
         password_base64=$(get_password_windows_administrator_base64)
         xmlstarlet ed -L -N x="urn:schemas-microsoft-com:unattend" \
             -d "//x:LocalAccounts" \
@@ -7831,6 +7832,7 @@ EOF
     else
         # 普通账号
         autologon_username=$username
+        disable_administrator_command='cmd /c net user Administrator /active:no'
         password_base64=$(get_password_windows_user_base64)
         xmlstarlet ed -L -N x="urn:schemas-microsoft-com:unattend" \
             -d "//x:AdministratorPassword" \
@@ -7845,6 +7847,7 @@ EOF
     sed -i \
         -e "s|%autologon_username%|$autologon_username|gi" \
         -e "s|%autologon_password%|$autologon_password_base64|gi" \
+        -e "s|%disable_administrator_command%|$disable_administrator_command|gi" \
         /tmp/autounattend.xml
 
     # 修改应答文件，分区配置
